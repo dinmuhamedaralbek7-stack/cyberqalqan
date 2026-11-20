@@ -1,0 +1,21 @@
+CyberQalqan — Vercel-ге дұрыс жариялау (APK жүктелуі үшін)
+==========================================================
+
+МАҢЫЗДЫ: Vercel-ге «web» папкасын ЕМЕС, бүкіл CyberQalqan папкасын жүктеңіз.
+Папканың ішінде мыналар болуы керек:
+   android/   api/   tools/   web/   build.sh   vercel.json
+
+1. zip-ті ашыңыз. CyberQalqan папкасын Vercel-ге сүйреңіз
+   (немесе Add New → Project → Deploy → папканы таңдау).
+2. Framework Preset: «Other». Build Command, Output Directory өрістерін БОС қалдырыңыз —
+   бәрі vercel.json ішінде жазылған.
+3. Deploy басыңыз. Жинау 8–12 минут алады (Android SDK жүктеліп, APK жиналады).
+4. Тексеру: Deployments → соңғы жариялау → Build Logs.
+   Соңында «✅ APK дайын: full … байт, lite … байт» жазуы болуы керек.
+5. Браузерде ашыңыз:  https://<сайтыңыз>.vercel.app/apk.json
+   {"ok":true, ...}  шықса — бәрі дұрыс, APK жүктеледі.
+   {"ok":false}     шықса — APK жиналмаған: Build Logs-тағы «❌» жолын скриншот етіп жіберіңіз.
+   404 / бет табылмады — build.sh іске қосылмаған: 1–2 қадамды қайталаңыз.
+
+ChatGPT үшін (міндетті емес): Settings → Environment Variables → OPENAI_API_KEY.
+Кілтті ешкімге, чатқа да жібермеңіз.

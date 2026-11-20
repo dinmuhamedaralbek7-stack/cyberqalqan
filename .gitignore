@@ -1,0 +1,19 @@
+# Құпия: APK қолтаңба кілті мен құпиясөзі
+*.keystore
+*.jks
+android/app/keystore.properties
+.env
+.env.*
+# Жинау нәтижелері
+public/
+.tools/
+.vercel/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/report.html
+android/app/src/main/assets/api_base.txt
+node_modules/
+*.apk
+.DS_Store

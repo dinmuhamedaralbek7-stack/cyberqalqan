@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05070d">
+<title>CyberQalqan — Отбасылық қалқан</title>
+<style>
+:root{--bg:#05070d;--card:#0e1526;--line:#1e2a44;--txt:#e8eefc;--mut:#8a98b8;--acc:#3cf2c3;--blue:#5b8cff;--bad:#ff4d6d;--ok:#2ee59d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:radial-gradient(800px 500px at 50% -10%,rgba(91,140,255,.22),transparent),var(--bg);color:var(--txt);min-height:100vh;line-height:1.5}
+main{max-width:520px;margin:0 auto;padding:28px 18px calc(40px + env(safe-area-inset-bottom))}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.logo{font-weight:800;font-size:18px}.logo b{color:var(--acc)}
+.lang{display:flex;gap:4px}.lang button{font:inherit;font-weight:800;font-size:13px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#0a1020;color:var(--mut);cursor:pointer}
+.lang button.on{background:var(--acc);color:#03140f;border-color:var(--acc)}
+.card{background:linear-gradient(180deg,rgba(18,27,48,.95),rgba(14,21,38,.95));border:1px solid rgba(91,140,255,.4);border-radius:20px;padding:22px}
+.viz{display:flex;justify-content:center;margin:4px 0 16px}
+.viz svg{width:84px;height:98px;filter:drop-shadow(0 0 14px rgba(91,140,255,.8));animation:g 2.8s ease-in-out infinite}
+@keyframes g{50%{filter:drop-shadow(0 0 26px rgba(91,140,255,1))}}
+h1{font-size:23px;line-height:1.25;text-align:center;margin-bottom:12px}
+p{color:#c5d0ea;margin-bottom:12px;font-size:16px}
+ul{margin:0 0 16px 20px;color:#c5d0ea;font-size:15px;display:grid;gap:6px}
+.btn{display:block;width:100%;font:inherit;font-weight:800;font-size:18px;padding:17px;border-radius:14px;border:0;cursor:pointer;margin-top:10px;text-align:center;text-decoration:none}
+.yes{color:#fff;background:linear-gradient(90deg,#5b8cff,#7a5bff)}
+.no{color:var(--txt);background:#0a1020;border:1px solid var(--line)}
+.code{font-size:44px;font-weight:800;letter-spacing:.18em;text-align:center;color:#a9c8ff;background:#070b16;border:1px solid var(--line);border-radius:16px;padding:16px;margin:10px 0;font-family:"JetBrains Mono",ui-monospace,monospace}
+.mut{color:var(--mut);font-size:13.5px;text-align:center;margin-top:14px}
+.err{color:var(--bad)}
+a{color:var(--acc)}
+.hidden{display:none!important}
+@media (prefers-reduced-motion:reduce){.viz svg{animation:none}}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><div class="logo">🛡️ Cyber<b>Qalqan</b></div><div class="lang"><button type="button" data-l="kk">ҚАЗ</button><button type="button" data-l="ru">РУС</button></div></div>
+<div class="card" id="card" aria-live="polite"></div>
+<p class="mut"><a href="/">CyberQalqan</a> · <a href="/privacy.html">Құпиялылық / Конфиденциальность</a></p>
+</main>
+<script src="family.js"></script>
+</body>
+</html>
