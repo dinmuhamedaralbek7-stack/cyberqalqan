@@ -5,6 +5,8 @@
 ITU Hackathon 2026 · Fintech case by **Bank CenterCredit**
 Команда: Аралбек Дінмұхамед, Тұрмаханбет Ерік
 
+📄 Хакатонға тапсыру құжаты: [HACKATHON.md](HACKATHON.md) · 🎞 [Презентация](media/CyberQalqan_Hackathon.pptx) · 🎬 [Орнату видеосы](media/CyberQalqan_install_v2.mp4)
+
 CyberQalqan SMS, WhatsApp, Telegram хабарламаларындағы сілтемелерді **ашпай тұрып** тексереді. Қауіпті болса — «БАСПАҢЫЗ!» дабылы, 102 батырмасы және сенімді туысқа бір басумен хабарлау («Отбасылық қалқан»).
 
 ## Мүмкіндіктер
