@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="format-detection" content="telephone=no">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-XNYk/UqPh2vdqn6W3gm6OrR5oa/5gbZnVL1rXfmrPKE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-oJUEJ+iK0IUpOVG/MKIr3ppmAVnFLyepfxRs23HdAAE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="theme-color" content="#05070d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -332,6 +332,21 @@ button,a,.chip,.tab{touch-action:manipulation}
 #alarm .bf{width:100%;font:inherit;font-weight:800;font-size:18px;padding:16px;border:0;border-radius:16px;color:#fff;background:linear-gradient(90deg,#5b8cff,#7a5bff);cursor:pointer}
 .dl-help{padding-left:18px;font-size:13.5px;color:var(--mut);display:grid;gap:6px;margin-top:8px}.dl-help b{color:var(--txt)}
 @media (prefers-reduced-motion:reduce){.fam-on .fam-viz .sh,.fam-on .fam-viz .ln,.tsh,.threat,.fm-box,.fam-boom .fam-viz .sh{animation:none!important}.th-sigs li{animation:none!important;opacity:1;transform:none}}
+/* ---------- Бір батырма + статистика + APK ---------- */
+.one-btn{position:relative;display:grid;place-items:center;width:178px;height:178px;margin:22px auto 10px;border-radius:50%;border:0;cursor:pointer;
+ background:radial-gradient(circle at 35% 30%,#7dfbe0,#3cf2c3 45%,#16b894);color:#03140f;font:inherit;box-shadow:0 0 0 10px rgba(60,242,195,.12),0 20px 60px -10px rgba(60,242,195,.7);transition:transform .15s}
+.one-btn:active{transform:scale(.95)}
+.one-btn .ob-ic{font-size:52px;line-height:1;margin-top:18px}.one-btn .ob-t{font-weight:900;font-size:20px;letter-spacing:.08em;margin-bottom:26px}
+.one-btn .ob-ring{position:absolute;inset:-14px;border-radius:50%;border:3px solid rgba(60,242,195,.55);animation:obr 2.2s ease-out infinite}
+@keyframes obr{0%{transform:scale(.92);opacity:1}100%{transform:scale(1.25);opacity:0}}
+.ob-hint{max-width:460px;margin:0 auto;text-align:center;color:var(--mut);font-size:14.5px}
+.cq-stats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px auto 0;max-width:620px}
+.cq-stats span{background:rgba(14,21,38,.85);border:1px solid var(--line);border-radius:99px;padding:7px 13px;font-size:13.5px;font-weight:700}
+.cq-stats b{color:var(--acc)}
+.apk-res{margin-top:8px;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0a1020;font-size:14px;line-height:1.5}
+.apk-res.bad{border-color:rgba(255,77,109,.6)}.apk-res .h{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--mut);word-break:break-all}
+body.app .apk-field{display:none}
+@media (prefers-reduced-motion:reduce){.one-btn .ob-ring{animation:none}}
 </style>
 </head>
 <body>
@@ -350,6 +365,11 @@ Cyber<b>Qalqan</b>
 <header class="hero">
 <h1>Бір <span>батырма</span> —<br>қауіпсіз сілтеме</h1>
 <p>Экрандағы домалақ <b>CyberQalqan</b> батырмасын басыңыз — ол буфердегі немесе қойылған сілтемені ашпай-ақ тексеріп, қауіп пайызын көрсетеді. Батырманы саусақпен кез келген жерге жылжытуға болады.</p>
+<button class="one-btn" id="oneBtn" type="button" aria-label="Бір батырма: тексеру">
+<span class="ob-ring"></span><span class="ob-ic">🛡️</span><span class="ob-t">ТЕКСЕРУ</span>
+</button>
+<div class="ob-hint">Күдікті сілтемені, хабарды немесе APK файл атауын көшіріп, <b>бір батырманы</b> басыңыз — қалғанын CyberQalqan өзі жасайды</div>
+<div class="cq-stats hidden" id="cqStats" aria-live="polite"></div>
 </header>
 <div class="stage">
 <div class="phone">
@@ -462,6 +482,11 @@ Cyber<b>Qalqan</b>
 <label class="drop" id="drop"><input type="file" id="shot" accept="image/*"><span id="dropTxt">📷 Скриншотты жүктеу — ИИ сілтемені өзі оқиды</span></label>
 </div>
 </div>
+</div>
+<div class="field apk-field" id="apkField">
+<label>📦 APK файлын тексеру — орнатпай тұрып</label>
+<label class="drop" id="apkDrop"><input type="file" id="apkFile" accept=".apk,.xapk,.apks,.apkm,application/vnd.android.package-archive"><span id="apkTxt">Telegram/WhatsApp-тан келген APK файлды таңдаңыз — ол ашылмайды, тек хэші мен атауы тексеріледі</span></label>
+<div class="apk-res hidden" id="apkRes"></div>
 </div>
 <button class="btn btn-main" id="go">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
@@ -905,7 +930,7 @@ const oa=$("openAnyway"); const canOpen=!!(window.CQApp && r.url && /^https?:\/\
 oa.classList.toggle("hidden",!canOpen); oa.dataset.url=r.url||""; oa.dataset.armed="";
 oa.textContent = p>=40 ? "⚠️ Бәрібір ашу (ұсынылмайды)" : "🌐 Сайтты браузерде ашу";
 oa.style.color = p>=40 ? "var(--bad)" : "var(--txt)"; oa.dataset.risky = p>=40 ? "1" : "";
-famOnResult(p,r);
+famOnResult(p,r); intelOnResult(p,r,trust);
 const alKey=r.url||(r.apkName?"apk:"+r.apkName:"");
 if(p>=60 && alKey && lastAlarm!==alKey){ lastAlarm=alKey; showAlarm(p,r); }
 const bd=$("badge"); bd.textContent=p+"%"; bd.style.background=p>=70?"var(--bad)":p>=40?"var(--warn)":"var(--ok)"; bd.classList.remove("hidden");
@@ -1055,7 +1080,10 @@ const sheet=$("sheet");
 function openSheet(fromFab){
 sheet.classList.add("open"); sheet.setAttribute("aria-hidden","false"); document.body.classList.add("lock");
 if(fromFab && !$("url").value.trim()){
-readClip().then(t=>{ const u=t&&extractUrl(t); if(u){ $("url").value=u.slice(0,2048); toast("📋 Буфердегі сілтеме қойылды"); check(); } else setTimeout(()=>$("url").focus(),300); });
+readClip().then(t=>{ t=(t||"").trim(); const apk=t&&APK_FILE_RE.test(t); const u=t&&!apk&&extractUrl(t);
+ if(u){ $("url").value=u.slice(0,2048); if(t.length>u.length+8) $("sms").value=t.slice(0,2000); toast("📋 Буфердегі сілтеме қойылды"); check(); }
+ else if(t && (apk || t.length>=12)){ $("sms").value=t.slice(0,2000); toast(apk?"📦 Буферде APK файл — тексеріп жатырмын":"📋 Буфердегі хабар қойылды"); check(); }
+ else setTimeout(()=>$("url").focus(),300); });
 }
 }
 function closeSheet(){ sheet.classList.remove("open"); sheet.setAttribute("aria-hidden","true"); document.body.classList.remove("lock"); }
@@ -1064,6 +1092,7 @@ $("closeSheet").addEventListener("click",closeSheet);
 sheet.addEventListener("click",e=>{ if(e.target===sheet) closeSheet(); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeSheet(); });
 $("openBtn").addEventListener("click",()=>openSheet(true));
+$("oneBtn").addEventListener("click",()=>{ $("url").value=""; openSheet(true); });
 $("pasteBtn").addEventListener("click",async()=>{ const t=await readClip(); if(t){ $("url").value=(extractUrl(t)||t).trim().slice(0,2048); toast("Қойылды"); } else { $("url").focus(); toast("Өрісті ұзақ басып, «Қою» таңдаңыз"); } });
 const fab=$("fab"); const S=64, M=14;
 function placeFab(x,y,snap){
@@ -1491,6 +1520,55 @@ $("alFam").addEventListener("click",()=>{ hideAlarm(); if(famLastResult) famStar
 const tb=$("famTeaser"); if(tb) tb.querySelector("button").addEventListener("click",openFamily);
 const nf=$("navFam"); if(nf) nf.addEventListener("click",e=>{ e.preventDefault(); openFamily(); });
 famRender(); famTeaser();
+/* ================= Supabase қауіп базасы (сервер арқылы: /api/intel) ================= */
+const INTEL_OK=/^https:$/.test(location.protocol)&&!/claude\.ai|claudeusercontent/.test(location.hostname)&&!(window.CQApp&&CQApp.isApp);
+function fmtN(n){ return Number(n||0).toLocaleString("ru-RU"); }
+function loadStats(){
+ if(!INTEL_OK) return;
+ fetch("/api/intel?action=stats").then(r=>r.ok?r.json():null).then(j=>{
+  if(!j||!j.ok) return; const b=$("cqStats"); b.replaceChildren();
+  const it=(ic,txt,n)=>{ const sp=el("span"); sp.append(document.createTextNode(ic+" "+txt+": ")); sp.append(el("b",null,fmtN(n))); b.append(sp); };
+  it("🔍","Бүгін тексерілді",j.today_checks); it("🚨","Қауіпті",j.today_dangerous); it("🗂️","Базадағы қауіптер",j.threats_known); if(j.apk_known) it("📦","Қауіпті APK",j.apk_known);
+  b.classList.remove("hidden");
+ }).catch(()=>{});
+}
+loadStats();
+function intelPost(o){ if(!INTEL_OK) return Promise.resolve(null); return fetch("/api/intel",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(o)}).then(r=>r.json()).catch(()=>null); }
+function intelCat(r){
+ if(r.fileExt&&/apk/i.test(r.fileExt)) return r.brand&&!r.official?"fake_bank":"other";
+ if(r.brand&&!r.official) return /bank|банк|kaspi|halyk|jusan|forte|freedom|centercredit|bcc|homebank/i.test(r.brand.name)?"fake_bank":"credential_phishing";
+ return "phishing";
+}
+function intelOnResult(p,r,trust){
+ if(!INTEL_OK||!r) return;
+ if(!r._logged){ r._logged=true; intelPost({action:"log",channel:"web",dangerous:p>=60}); }
+ // Қауіпті доменді базаға қосамыз (тек домен — толық сілтеме мен SMS мәтіні жіберілмейді)
+ if(!r._reported && p>=60 && r.host && !r.official && trust!==undefined){ r._reported=true;
+  intelPost({action:"report",kind:"domain",value:r.host,category:intelCat(r),score:p}); }
+}
+/* APK файлын орнатпай тексеру: файл ашылмайды, тек SHA-256 хэші мен атауы */
+async function sha256Hex(buf){ const h=await crypto.subtle.digest("SHA-256",buf); return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,"0")).join(""); }
+$("apkFile").addEventListener("change",async e=>{
+ const f=e.target.files&&e.target.files[0]; const box=$("apkRes"); box.className="apk-res"; box.replaceChildren(); if(!f) return;
+ if(f.size>300*1024*1024){ box.append(el("div",null,"Файл тым үлкен (300 МБ-тан көп).")); return; }
+ const name=String(f.name||"file.apk").slice(0,120);
+ $("apkTxt").textContent="📦 "+name; box.append(el("div",null,"⏳ Хэш есептелуде…"));
+ let hex=""; try{ hex=await sha256Hex(await f.arrayBuffer()); }catch(err){}
+ box.replaceChildren();
+ // Атауы мен «APK» фактісі бойынша қолданыстағы анализатор (жеке анализатор емес)
+ $("sms").value=("Файл: "+(APK_FILE_RE.test(name)?name:name+".apk")).slice(0,200);
+ check();
+ if(hex) box.append(el("div","h","SHA-256: "+hex));
+ if(!hex||!INTEL_OK){ box.append(el("div",null,INTEL_OK?"Хэш есептелмеді.":"Базамен тексеру тек сайтта жұмыс істейді.")); box.classList.remove("hidden"); return; }
+ const j=await fetch("/api/intel?action=check&kind=apk_sha256&value="+hex).then(r=>r.json()).catch(()=>null);
+ if(j&&j.ok&&j.reports>0){ box.classList.add("bad"); box.append(el("div",null,`🚨 CyberQalqan базасында: бұл файлды ${j.reporters} пайдаланушы қауіпті деп белгілеген (${(j.categories||[]).join(", ")}). ОРНАТПАҢЫЗ!`)); }
+ else if(j&&j.ok){ box.append(el("div",null,"Базада әзірге жоқ. Бірақ бұл белгісіз дереккөзден келген APK — банктер мен eGov қосымшаны ешқашан мессенджер арқылы жібермейді.")); }
+ else box.append(el("div",null,"База қазір қолжетімсіз — эвристика нәтижесі жоғарыда."));
+ const rep=el("button","btn btn-ghost","🚩 Алаяқтық деп хабарлау"); rep.type="button"; rep.style.marginTop="10px";
+ rep.addEventListener("click",async()=>{ rep.disabled=true; const x=await intelPost({action:"report",kind:"apk_sha256",value:hex,category:"other",score:90,source:"user"}); toast(x&&x.ok?"Рақмет! Базаға қосылды":"Жіберілмеді"); });
+ box.append(rep); box.classList.remove("hidden");
+});
+
 
 })();
 </script>

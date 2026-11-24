@@ -24,7 +24,8 @@ object AppScanner {
 
     data class Finding(
         val pkg: String, val label: String, val score: Int, val reasons: List<String>,
-        val sideloaded: Boolean, val a11yOn: Boolean, val admin: Boolean, val remote: Boolean, val installed: Long
+        val sideloaded: Boolean, val a11yOn: Boolean, val admin: Boolean, val remote: Boolean, val installed: Long,
+        val category: String = "other"
     ) { val danger get() = score >= 60 }
 
     /** Ресми дүкендер — осылардан орнатылған қосымшаға сенім жоғары */
@@ -131,8 +132,19 @@ object AppScanner {
         val score = s.coerceAtMost(99)
         // Тек шынымен назар аударарлық қосымшаларды көрсетеміз
         if (score < 30 && remote == null) return null
+        val low = (label + " " + pkg).lowercase(Locale.ROOT)
+        val smsP = granted(p, "android.permission.RECEIVE_SMS") || granted(p, "android.permission.READ_SMS")
+        val cat = when {
+            remote != null -> "remote_access"
+            a11yOn && side -> "rat"
+            side && BAIT.any { low.contains(it) } -> "fake_bank"
+            side && smsP -> "sms_stealer"
+            side && pkg in c.listeners -> "spyware"
+            side && requested(p, "android.permission.SYSTEM_ALERT_WINDOW") -> "overlay"
+            else -> "other"
+        }
         return Finding(pkg, label, score, reasons.sortedByDescending { it.first }.map { it.second },
-            side, a11yOn, admin, remote != null, p.firstInstallTime)
+            side, a11yOn, admin, remote != null, p.firstInstallTime, cat)
     }
 
     /** Барлық көрінетін қосымшаларды тексеру (фондық ағында шақырыңыз) */

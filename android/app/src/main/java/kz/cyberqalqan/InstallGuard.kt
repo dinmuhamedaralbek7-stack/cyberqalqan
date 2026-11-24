@@ -89,6 +89,7 @@ object InstallGuard {
         if (key in alerted || f.score < ALARM_AT) return
         alerted += key; save(ctx, ALERTED, alerted)
         if (quiet) return
+        Api.intelReport(ctx, "apk_package", f.pkg, f.category, f.score)
         Notify.appAlert(ctx, f, why)
         try { ctx.startActivity(AlarmActivity.appIntent(ctx, f, why)) } catch (_: Exception) {}
     }

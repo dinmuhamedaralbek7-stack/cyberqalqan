@@ -22,6 +22,10 @@ object Checker {
             // ИИ бағаны тек көтере алады (қауіпті сілтемені «қауіпсіз» деп жасыра алмайды)
             score = maxOf(score, (score + a) / 2)
         }
+        // Анонимді статистика + қауіпті доменді қауымдастық базасына қосу (тек домен)
+        Api.intelLog(ctx, "android", score >= 60)
+        if (score >= 60 && host.isNotEmpty())
+            Api.intelReport(ctx, "domain", host, if (r0.brand != null) "fake_bank" else "phishing", score)
         return Out(r0.copy(score = score), t, ai)
     }
 

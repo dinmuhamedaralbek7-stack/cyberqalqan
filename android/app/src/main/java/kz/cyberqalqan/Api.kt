@@ -40,6 +40,40 @@ object Api {
         } catch (_: Exception) { null } finally { c?.disconnect() }
     }
 
+    // ================= Supabase қауіп базасы (сервер арқылы: /api/intel) =================
+    // Жіберілетіні: домен / APK SHA-256 / пакет аты, санат, баға. SMS мәтіні мен нөмір ЖІБЕРІЛМЕЙДІ.
+    private fun intelReq(ctx: Context, path: String, body: JSONObject?): JSONObject? {
+        val b = base(ctx); if (b.isEmpty() || !Regex("^[a-z0-9.-]+$").matches(b)) return null
+        var c: HttpsURLConnection? = null
+        return try {
+            c = URL("https://$b/api/intel$path").openConnection() as HttpsURLConnection
+            c.connectTimeout = 5000; c.readTimeout = 8000; c.instanceFollowRedirects = false
+            c.setRequestProperty("Accept", "application/json")
+            if (body != null) {
+                c.requestMethod = "POST"; c.doOutput = true
+                c.setRequestProperty("Content-Type", "application/json")
+                c.outputStream.use { it.write(body.toString().take(4000).toByteArray(Charsets.UTF_8)) }
+            }
+            if (c.responseCode != 200) return null
+            JSONObject(c.inputStream.bufferedReader().use { it.readText().take(16000) })
+        } catch (_: Exception) { null } finally { c?.disconnect() }
+    }
+
+    /** Базадан тексеру (фондық ағында): kind = domain | apk_sha256 | apk_package */
+    fun intelCheck(ctx: Context, kind: String, value: String): JSONObject? =
+        intelReq(ctx, "?action=check&kind=$kind&value=" + URLEncoder.encode(value.take(300), "UTF-8"), null)?.takeIf { it.optBoolean("ok") }
+
+    /** Қауіпті нәрсені базаға қосу (өз ағынында, жауап күтпейді) */
+    fun intelReport(ctx: Context, kind: String, value: String, category: String, score: Int, user: Boolean = false) {
+        if (score < 60 || value.isBlank()) return
+        Thread { intelReq(ctx, "", JSONObject().put("action", "report").put("kind", kind).put("value", value.take(300))
+            .put("category", category).put("score", score).put("source", if (user) "user" else "auto")) }.start()
+    }
+
+    fun intelLog(ctx: Context, channel: String, dangerous: Boolean) {
+        Thread { intelReq(ctx, "", JSONObject().put("action", "log").put("channel", channel).put("dangerous", dangerous)) }.start()
+    }
+
     /** Серверде ChatGPT кілті орнатылған ба? Нәтиже Prefs.AI_SRV ішінде кэштеледі. */
     fun refreshAiEnabled(ctx: Context) {
         val b = base(ctx); if (b.isEmpty() || !Regex("^[a-z0-9.-]+$").matches(b)) return

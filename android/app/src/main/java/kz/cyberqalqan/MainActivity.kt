@@ -120,6 +120,62 @@ class MainActivity : Activity() {
         }.start()
     }
 
+    /** БІР БАТЫРМА: телефонды толық тексеріп, «Қорғаныс деңгейі N/100» және түзету батырмаларын көрсетеді */
+    private fun fullAudit() {
+        Toast.makeText(this, "🛡️ Толық тексеру…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val apps = try { AppScanner.scan(applicationContext) } catch (_: Exception) { emptyList() }
+            runOnUiThread {
+                if (isFinishing) return@runOnUiThread
+                var score = 100
+                val lines = mutableListOf<String>()
+                val fixes = mutableListOf<Pair<String, () -> Unit>>()
+                val bad = apps.filter { it.danger }; val remote = apps.filter { it.remote && !it.danger }
+                if (bad.isNotEmpty()) {
+                    score -= 45
+                    lines += "🚨 Қауіпті қосымша: " + bad.joinToString(", ") { "${it.label} (${it.score}%)" }
+                    fixes += "🗑 «${bad[0].label}» тексеру/өшіру" to { showFinding(bad[0]) }
+                    Api.intelLog(applicationContext, "android", true)
+                    bad.forEach { f -> Api.intelReport(applicationContext, "apk_package", f.pkg, f.category, f.score) }
+                } else lines += "✅ Қауіпті қосымша табылмады (${apps.size} назар аударарлық)"
+                if (remote.isNotEmpty()) { score -= 10; lines += "🖥️ Қашықтан басқару құралы: " + remote.joinToString(", ") { it.label } + " — «банк қызметкері» сұраса, өшіріңіз" }
+                if (apps.any { it.a11yOn && it.sideloaded }) { score -= 10; lines += "⚠️ Бөгде қосымшада «Арнайы мүмкіндіктер» қосулы"
+                    fixes += "♿ Арнайы мүмкіндіктерді ашу" to { try { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) } catch (_: Exception) {} } }
+                if (!Security.isGenuine(this)) { score -= 30; lines += "⛔ CyberQalqan түпнұсқа емес" }
+                if (Security.isRooted()) { score -= 10; lines += "⚠️ Root анықталды" }
+                if (!Security.deviceSecure(this)) { score -= 8; lines += "⚠️ Телефонда экран құлпы жоқ"
+                    fixes += "🔒 Экран құлпын қосу" to { try { startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS)) } catch (_: Exception) {} } }
+                else lines += "✅ Экран құлпы бар"
+                if (!isDefaultBrowser()) { score -= 10; lines += "○ Сілтемені басқанда тексеру өшірулі"; fixes += "👆 Сілтемені басқанда тексеру" to { requestBrowserRole() } }
+                else lines += "✅ Сілтемені басқанда тексеру қосулы"
+                if (hasListener()) {
+                    if (!listenerOn()) { score -= 10; lines += "○ SMS-ті автоматты тексеру өшірулі"
+                        fixes += "📩 SMS тексеруді қосу" to { askListenerConsent { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) } } }
+                    else lines += "✅ SMS автоматты тексеріледі"
+                }
+                if (!BubbleService.isRunning()) { score -= 5; lines += "○ Қалқымалы батырма өшірулі"
+                    fixes += "🛡️ Батырманы қосу" to { if (canOverlay()) startBubble() else { wantBubble = true; startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) } } }
+                // Соңғы келген сілтеме
+                val last = try { Vault.last(this, 24 * 3600_000L)?.first } catch (_: Exception) { null }
+                if (!last.isNullOrBlank()) fixes += "🔗 Соңғы сілтемені тексеру" to { startActivity(Intent(this, CheckActivity::class.java).putExtra(CheckActivity.EXTRA_URL, last).putExtra(CheckActivity.EXTRA_SMS, Vault.last(this, 24 * 3600_000L)?.second.orEmpty())) }
+                fixes += "📦 APK файлды тексеру" to { startActivity(Intent(this, ApkCheckActivity::class.java)) }
+                score = score.coerceIn(0, 100)
+                if (bad.isEmpty()) Api.intelLog(applicationContext, "android", false)
+                if (bad.isNotEmpty()) try { startActivity(AlarmActivity.appIntent(this, bad[0], "Толық тексеруде қауіпті қосымша табылды")) } catch (_: Exception) {}
+                val head = (if (score >= 80) "🟢" else if (score >= 50) "🟡" else "🔴") + " Қорғаныс деңгейі: $score/100"
+                val d = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle(head).setMessage(lines.joinToString("\n"))
+                    .setNegativeButton("Жабу", null)
+                if (fixes.isNotEmpty()) d.setPositiveButton("Түзету (${fixes.size})") { _, _ ->
+                    AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle("Не істейміз?")
+                        .setItems(fixes.map { it.first }.toTypedArray()) { _, i -> fixes[i].second() }.show()
+                }
+                d.show()
+                render()
+            }
+        }.start()
+    }
+
     private fun showFinding(f: AppScanner.Finding) {
         AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle((if (f.danger) "🚨 " else "⚠️ ") + f.label)
@@ -296,6 +352,18 @@ class MainActivity : Activity() {
         list.addView(logo)
         list.addView(gap(8))
         list.addView(text("Сілтемені басудан бұрын тексеретін қалқан. Алаяқтардың SMS, WhatsApp және Telegram сілтемелерінен қорғайды.", 14.5f, MUT))
+        list.addView(gap(18))
+
+        // ---- БІР БАТЫРМА: бәрін бір рет тексеру ----
+        list.addView(TextView(this).apply {
+            text = "🛡️  ТЕКСЕРУ"; textSize = 24f; typeface = Typeface.DEFAULT_BOLD; gravity = Gravity.CENTER
+            setTextColor(Color.parseColor("#03140F"))
+            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(ACC, Color.parseColor("#7AF7DA"))).apply { cornerRadius = dp(24).toFloat() }
+            setPadding(dp(16), dp(26), dp(16), dp(26)); isClickable = true
+            setOnClickListener { fullAudit() }
+        })
+        list.addView(gap(6))
+        list.addView(text("Бір басу: сілтеме, қосымшалар, рұқсаттар және қорғаныс күйі — бәрі тексеріледі", 12.5f, MUT).apply { gravity = Gravity.CENTER })
         list.addView(gap(20))
 
         // ---- Қорғаныс күйі ----
@@ -418,6 +486,8 @@ class MainActivity : Activity() {
         // ---- APK-алаяқтықтан қорғау ----
         val apkBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         apkBox.addView(button("🔍 Қосымшаларды қазір тексеру", true) { runAppScan() })
+        apkBox.addView(gap(8))
+        apkBox.addView(button("📦 APK файлды орнатпай тексеру", false) { startActivity(Intent(this, ApkCheckActivity::class.java)) })
         if (Build.VERSION.SDK_INT >= 26) {
             apkBox.addView(gap(8))
             apkBox.addView(button("🚫 Белгісіз көздерден орнатуды бұғаттау", false) {

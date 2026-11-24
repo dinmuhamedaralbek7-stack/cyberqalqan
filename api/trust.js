@@ -3,6 +3,7 @@
 // Қауіпсіздік: тек домен атауы қабылданады; ішкі/жеке IP-ге қосылмайды (SSRF қорғанысы);
 // сайттың мазмұны ЖҮКТЕЛМЕЙДІ — тек DNS, TLS-сертификат және ашық анықтамалықтар.
 "use strict";
+const supa = require("./_supa");
 const dns = require("dns").promises;
 const net = require("net");
 const tls = require("tls");
@@ -164,7 +165,7 @@ module.exports = async (req, res) => {
   const publicIps = ips.filter(ip => !isPrivateIP(ip));
   if (ips.length && !publicIps.length) { res.statusCode = 400; return res.end('{"error":"private_address"}'); }
 
-  const [rdap, tranco, op, gsb, ysb, geo, tlsRes] = await Promise.all([
+  const [rdap, tranco, op, gsb, ysb, geo, tlsRes, comm] = await Promise.all([
     rdapInfo(reg).then(r => r || whoisInfo(reg)).catch(() => null),
     getJSON(`https://tranco-list.eu/api/ranks/domain/${encodeURIComponent(reg)}`, 4500),
     openphishHosts().catch(() => null),
@@ -172,7 +173,14 @@ module.exports = async (req, res) => {
     safeBrowsing("https://sba.yandex.net/v4/threatMatches:find", process.env.YANDEX_SAFE_BROWSING_KEY, host),
     publicIps[0] ? getJSON(`https://ipwho.is/${publicIps[0]}?fields=success,country,country_code,flag,connection`, 4000) : null,
     publicIps[0] ? tlsInfo(host, publicIps[0]) : null,
+    supa.rpc("check_threat", { p_kind: "domain", p_value: host }, 2500),
   ]);
+  // CyberQalqan қауымдастығының базасы (Supabase): басқа пайдаланушылар бұл доменді қауіпті деп белгілеген бе
+  if (comm && comm.ok && comm.reports > 0) {
+    facts.community = { reports: comm.reports, reporters: comm.reporters, avg: comm.avg_score, categories: comm.categories };
+    const pen = comm.reporters >= 3 ? -40 : comm.reporters >= 2 ? -30 : -20;
+    add("bad", `CyberQalqan базасы: бұл доменді ${comm.reporters} пайдаланушы қауіпті деп белгілеген`, pen);
+  }
 
   // 1) Жасы
   if (rdap && rdap.created) {
