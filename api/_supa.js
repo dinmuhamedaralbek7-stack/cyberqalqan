@@ -5,8 +5,9 @@
 // service_role кілтін ЕШҚАШАН мұнда қоймаңыз.
 "use strict";
 const crypto = require("crypto");
-const URL_ = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
-const KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "";
+// Әдепкі: CyberQalqan жобасы. Publishable кілт ашық болуға арналған (кестелер RLS-пен жабық, тек функциялар ашық).
+const URL_ = (process.env.SUPABASE_URL || "https://zbvifqpegddyljlywisk.supabase.co").replace(/\/+$/, "");
+const KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_ihQNuo4Xq-nncoNf-xZiAg_gPm7w9a_";
 const enabled = () => /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(URL_) && KEY.length > 20;
 
 async function rpc(fn, args, ms = 3000) {
