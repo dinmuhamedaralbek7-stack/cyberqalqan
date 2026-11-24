@@ -15,7 +15,7 @@ async function rpc(fn, args, ms = 3000) {
   try {
     const r = await fetch(`${URL_}/rest/v1/rpc/${fn}`, {
       method: "POST", signal: c.signal,
-      headers: { apikey: KEY, authorization: "Bearer " + KEY, "content-type": "application/json" },
+      headers: { apikey: KEY, ...(KEY.startsWith("eyJ") ? { authorization: "Bearer " + KEY } : {}), "content-type": "application/json" },
       body: JSON.stringify(args || {})
     });
     if (!r.ok) return null;
