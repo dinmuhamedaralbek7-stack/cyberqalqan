@@ -43,6 +43,16 @@ class AlarmActivity : Activity() {
 
         fun soundOn(ctx: Context) = ctx.getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_SOUND, true)
 
+        /** Қауіпті қосымша табылғанда (APK-алаяқтық) */
+        fun appIntent(ctx: Context, f: AppScanner.Finding, why: String) =
+            Intent(ctx, AlarmActivity::class.java).apply {
+                putExtra("app_pkg", f.pkg); putExtra("app_label", f.label); putExtra("app_why", why)
+                putExtra("app_reasons", f.reasons.take(5).toTypedArray()); putExtra("app_a11y", f.a11yOn)
+                putExtra("app_admin", f.admin); putExtra("score", f.score)
+                putExtra("nid", ("app|" + f.pkg).hashCode())
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+
         fun intent(ctx: Context, url: String, score: Int, sms: String, sender: String, brand: String?) =
             Intent(ctx, AlarmActivity::class.java).apply {
                 putExtra(CheckActivity.EXTRA_URL, url)
@@ -60,6 +70,14 @@ class AlarmActivity : Activity() {
     private val main = Handler(Looper.getMainLooper())
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+    private fun gap(h: Int) = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dp(h)) }
+    private fun btn(label: String, bg: Int, fg: Int, onClick: () -> Unit) = TextView(this).apply {
+        text = label; textSize = 18f; typeface = Typeface.DEFAULT_BOLD; gravity = Gravity.CENTER
+        setTextColor(fg); setPadding(dp(16), dp(18), dp(16), dp(18))
+        background = GradientDrawable().apply { cornerRadius = dp(18).toFloat(); setColor(bg) }
+        isClickable = true; setOnClickListener { stopAlarm(); onClick() }
+        layoutParams = LinearLayout.LayoutParams(-1, -2)
+    }
 
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,6 +108,7 @@ class AlarmActivity : Activity() {
     }
 
     private fun build() {
+        if (intent.getStringExtra("app_pkg") != null) { buildApp(); return }
         val url = intent.getStringExtra(CheckActivity.EXTRA_URL).orEmpty()
         val score = intent.getIntExtra("score", 90)
         val sender = intent.getStringExtra(CheckActivity.EXTRA_SENDER).orEmpty()
@@ -105,14 +124,6 @@ class AlarmActivity : Activity() {
         fun t(s: String, size: Float, color: Int = Color.WHITE, bold: Boolean = false) = TextView(this).apply {
             text = s; textSize = size; setTextColor(color); gravity = Gravity.CENTER
             if (bold) typeface = Typeface.DEFAULT_BOLD; setLineSpacing(0f, 1.12f)
-        }
-        fun gap(h: Int) = View(this).apply { layoutParams = LinearLayout.LayoutParams(1, dp(h)) }
-        fun btn(label: String, bg: Int, fg: Int, onClick: () -> Unit) = TextView(this).apply {
-            text = label; textSize = 18f; typeface = Typeface.DEFAULT_BOLD; gravity = Gravity.CENTER
-            setTextColor(fg); setPadding(dp(16), dp(18), dp(16), dp(18))
-            background = GradientDrawable().apply { cornerRadius = dp(18).toFloat(); setColor(bg) }
-            isClickable = true; setOnClickListener { stopAlarm(); onClick() }
-            layoutParams = LinearLayout.LayoutParams(-1, -2)
         }
 
         val siren = t("🚨", 74f)
@@ -166,6 +177,79 @@ class AlarmActivity : Activity() {
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
     }
 
+    /** 📦 Қауіпті қосымша экраны: не болды, не істеу керек, бір батырмамен өшіру */
+    private fun buildApp() {
+        val pkg = intent.getStringExtra("app_pkg").orEmpty()
+        val label = intent.getStringExtra("app_label").orEmpty()
+        val why = intent.getStringExtra("app_why").orEmpty()
+        val reasons = intent.getStringArrayExtra("app_reasons")?.toList().orEmpty()
+        val a11y = intent.getBooleanExtra("app_a11y", false)
+        val admin = intent.getBooleanExtra("app_admin", false)
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(22), dp(40), dp(22), dp(30))
+            background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(Color.parseColor("#B0102A"), Color.parseColor("#5A0718"), Color.parseColor("#1A0208")))
+        }
+        fun t(s: String, size: Float, color: Int = Color.WHITE, bold: Boolean = false) = TextView(this).apply {
+            text = s; textSize = size; setTextColor(color); gravity = Gravity.CENTER
+            if (bold) typeface = Typeface.DEFAULT_BOLD; setLineSpacing(0f, 1.15f)
+        }
+        root.addView(t("📦🚨", 60f).apply { startAnimation(AlphaAnimation(1f, 0.25f).apply {
+            duration = 380; repeatMode = Animation.REVERSE; repeatCount = Animation.INFINITE }) })
+        root.addView(t(if (why == "a11y") "ТЕЛЕФОНДЫ БАСҚАРУҒА РҰҚСАТ БЕРІЛДІ!" else "ҚАУІПТІ ҚОСЫМША!", 30f, bold = true))
+        root.addView(gap(8))
+        root.addView(t("«$label»", 22f, Color.parseColor("#FFD6DD"), true))
+        root.addView(gap(10))
+        root.addView(t(if (why == "a11y") "Бұл қосымша енді экраныңызды оқып, сіздің орныңызға баса алады. Алаяқтар дәл осылай банк қосымшасынан ақша аударады."
+            else "Бұл APK файлдан орнатылған күдікті қосымша. Алаяқтар «банк қосымшасы», «бонус», «жаңарту» деп осындай файл жібереді.", 15.5f, Color.parseColor("#FFE9ED")))
+        root.addView(gap(12))
+        for (r in reasons.take(4)) root.addView(t("• $r", 14f, Color.parseColor("#FFCCD5")).apply { gravity = Gravity.START })
+        root.addView(gap(22))
+        root.addView(btn("🗑  ҚОСЫМШАНЫ ӨШІРУ", Color.WHITE, Color.parseColor("#B0102A")) {
+            stopAlarm()
+            try { startActivity(Intent(Intent.ACTION_DELETE, Uri.parse("package:$pkg"))) } catch (_: Exception) {
+                try { startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg"))) } catch (_: Exception) {}
+            }
+        })
+        root.addView(gap(12))
+        if (a11y) {
+            root.addView(btn("♿  «Арнайы мүмкіндіктер» рұқсатын алу", Color.parseColor("#33FFFFFF"), Color.WHITE) {
+                stopAlarm(); try { startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)) } catch (_: Exception) {}
+            })
+            root.addView(gap(12))
+        }
+        if (admin) {
+            root.addView(btn("🔓  Құрылғы әкімшісінен алу (алдымен осы)", Color.parseColor("#33FFFFFF"), Color.WHITE) {
+                stopAlarm(); try { startActivity(Intent().setClassName("com.android.settings", "com.android.settings.DeviceAdminSettings")) }
+                catch (_: Exception) { try { startActivity(Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS)) } catch (_: Exception) {} }
+            })
+            root.addView(gap(12))
+        }
+        root.addView(btn("📴  Интернетті өшіру", Color.parseColor("#33FFFFFF"), Color.WHITE) {
+            stopAlarm()
+            try { startActivity(Intent(if (Build.VERSION.SDK_INT >= 29) android.provider.Settings.Panel.ACTION_INTERNET_CONNECTIVITY else android.provider.Settings.ACTION_WIRELESS_SETTINGS)) } catch (_: Exception) {}
+        })
+        root.addView(gap(12))
+        val fam = Family.active(this)
+        if (fam.isNotEmpty()) {
+            root.addView(btn("👨‍👩‍👧  ТУЫСЫМА ХАБАРЛАУ", Color.parseColor("#5B8CFF"), Color.WHITE) {
+                val c = fam[0]; val body = Family.messageApp(this, c, label)
+                android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("Кімге: ${c.name} (${c.rel})").setMessage(body)
+                    .setPositiveButton("📨 Жіберу") { _, _ -> Family.compose(this, c.method, c.phone, body) }
+                    .setNegativeButton("Болдырмау", null).show()
+            })
+            root.addView(gap(12))
+        }
+        root.addView(btn("📞  $POLICE — Полиция", Color.parseColor("#1AFFFFFF"), Color.WHITE) { dialPolice(this) })
+        root.addView(gap(12))
+        root.addView(btn("✅  Бұл қосымшаны өзім орнаттым, білемін", Color.parseColor("#1AFFFFFF"), Color.parseColor("#FFD6DD")) { finish() })
+        root.addView(gap(14))
+        root.addView(t("Банк деректерін немесе SMS-кодты енгізіп қойсаңыз — басқа телефоннан банкке (карта артындағы нөмір) дереу қоңырау шалып, картаны бұғаттаңыз.", 12.5f, Color.parseColor("#FFB3C0")))
+        setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
+    }
+
     @Suppress("DEPRECATION")
     private fun familyAlert(list: List<Family.Contact>, url: String, score: Int, brand: String) {
         val pick = { c: Family.Contact ->
@@ -203,6 +287,9 @@ class AlarmActivity : Activity() {
         } catch (_: Exception) {}
 
         if (soundOn(this)) {
+            // 🚨 Сигналка: синтезделген көлік сигнализациясы, дабыл дыбысы ең жоғары деңгейде, фонарь жыпылықтайды
+            Siren.start(this, Prefs.bool(this, Prefs.TORCH, true))
+            if (Siren.isPlaying()) return
             try {
                 val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                     ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
@@ -228,6 +315,7 @@ class AlarmActivity : Activity() {
     }
 
     private fun stopAlarm() {
+        Siren.stop(this)
         try { ringtone?.stop() } catch (_: Exception) {}
         ringtone = null
         try { vibrator?.cancel() } catch (_: Exception) {}

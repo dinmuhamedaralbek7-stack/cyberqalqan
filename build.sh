@@ -44,7 +44,7 @@ build_apk() {
   cp app/build/outputs/apk/lite/release/app-lite-release.apk "$OUT/CyberQalqan-Lite.apk"
   SIZE=$(stat -c %s "$OUT/CyberQalqan.apk");      SHA=$(sha256sum "$OUT/CyberQalqan.apk" | cut -d" " -f1)
   LSIZE=$(stat -c %s "$OUT/CyberQalqan-Lite.apk"); LSHA=$(sha256sum "$OUT/CyberQalqan-Lite.apk" | cut -d" " -f1)
-  echo "{\"ok\":true,\"version\":\"2.1\",\"size\":$SIZE,\"sha256\":\"$SHA\",\"lite\":{\"ok\":true,\"size\":$LSIZE,\"sha256\":\"$LSHA\"},\"built\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$OUT/apk.json"
+  echo "{\"ok\":true,\"version\":\"2.5\",\"size\":$SIZE,\"sha256\":\"$SHA\",\"lite\":{\"ok\":true,\"size\":$LSIZE,\"sha256\":\"$LSHA\"},\"built\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$OUT/apk.json"
   log "✅ APK дайын: full $SIZE байт, lite $LSIZE байт"
 }
 

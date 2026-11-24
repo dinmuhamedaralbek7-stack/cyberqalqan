@@ -9,6 +9,7 @@ object Prefs {
     const val THRESH = "alarm_threshold"   // дабыл шегі, %
     const val CONSENT = "listener_consent" // хабарландыруларды оқуға ашық келісім
     const val AI_SRV = "ai_server"         // сервер ИИ кілті орнатылған ба (кэш)
+    const val TORCH = "alarm_torch"        // дабыл кезінде фонарь жыпылықтасын (әдепкі: иә)
 
     private fun sp(c: Context) = c.applicationContext.getSharedPreferences(AlarmActivity.PREFS, Context.MODE_PRIVATE)
     fun bool(c: Context, k: String, def: Boolean) = sp(c).getBoolean(k, def)

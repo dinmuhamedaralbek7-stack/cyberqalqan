@@ -11,8 +11,8 @@ android {
         applicationId = "kz.cyberqalqan"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "2.1"
+        versionCode = 5
+        versionName = "2.5"
     }
     // Тұрақты қолтаңба: әр жинақ бір кілтпен қол қойылады, сондықтан жаңарту «App not installed» бермейді.
     // Кілт пен құпиясөз GitHub-та ЖОҚ: олар android/app/keystore.properties және cq-release.keystore

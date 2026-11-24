@@ -43,6 +43,8 @@ class MainActivity : Activity() {
         Security.secureWindow(this)
         Notify.ensureChannels(this)
         Api.refreshAiEnabled(applicationContext)
+        // APK-алаяқтыққа қарсы күзетші: бар қосымшаларды «таныс» деп белгілеу + 15 минуттық фондық тексеру
+        Thread { InstallGuard.baseline(applicationContext); InstallGuard.schedule(applicationContext) }.start()
         if (Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7)
@@ -94,6 +96,44 @@ class MainActivity : Activity() {
     }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    /** Орнатылған қосымшаларды тексеріп, нәтижесін көрсету */
+    private fun runAppScan() {
+        Toast.makeText(this, "🔍 Қосымшалар тексерілуде…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val list = AppScanner.scan(applicationContext)
+            runOnUiThread {
+                if (isFinishing) return@runOnUiThread
+                if (list.isEmpty()) {
+                    AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                        .setTitle("✅ Қауіпті қосымша табылмады")
+                        .setMessage("Play Store-дан тыс орнатылған күдікті қосымша, «Арнайы мүмкіндіктерді» алған бөгде қосымша немесе қашықтан басқару құралы табылмады.\n\nЕскерту: CyberQalqan тек өзіне көрінетін қосымшаларды тексереді.")
+                        .setPositiveButton("Жақсы", null).show()
+                    return@runOnUiThread
+                }
+                val items = list.map { f -> (if (f.danger) "🚨 " else if (f.remote) "🖥️ " else "⚠️ ") + "${f.label} — ${f.score}%" }.toTypedArray()
+                AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("Табылды: ${list.size}")
+                    .setItems(items) { _, i -> showFinding(list[i]) }
+                    .setNegativeButton("Жабу", null).show()
+            }
+        }.start()
+    }
+
+    private fun showFinding(f: AppScanner.Finding) {
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle((if (f.danger) "🚨 " else "⚠️ ") + f.label)
+            .setMessage(f.reasons.joinToString("\n") { "• $it" } + "\n\nПакет: ${f.pkg}" +
+                (if (f.danger) "\n\nӨзіңіз орнатпаған болсаңыз — дереу өшіріңіз. Банк деректерін енгізген болсаңыз, банкке қоңырау шалыңыз." else ""))
+            .setPositiveButton("🗑 Өшіру") { _, _ ->
+                try { startActivity(Intent(Intent.ACTION_DELETE, Uri.parse("package:${f.pkg}"))) }
+                catch (_: Exception) { try { startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${f.pkg}"))) } catch (_: Exception) {} }
+            }
+            .setNeutralButton("⚙️ Рұқсаттар") { _, _ ->
+                try { startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${f.pkg}"))) } catch (_: Exception) {}
+            }
+            .setNegativeButton("Жабу", null).show()
+    }
 
     /** PIN енгізу терезесі. onDone(true) — дұрыс. */
     private fun askPin(title: String, onDone: (Boolean) -> Unit) {
@@ -341,8 +381,13 @@ class MainActivity : Activity() {
                 "Kaspi: Сізге 50 000 ₸ бонус! 24 сағат ішінде алыңыз", "+7 705 412 88 19", "Kaspi.kz"))
         })
         alarmBox.addView(gap(8))
-        alarmBox.addView(button(if (sound) "🔊 Дабыл дыбысы: қосулы" else "🔇 Дабыл дыбысы: өшірулі", false) {
+        alarmBox.addView(button(if (sound) "🔊 Сигналка дыбысы: қосулы (ең қатты)" else "🔇 Сигналка дыбысы: өшірулі", false) {
             prefs.edit().putBoolean(AlarmActivity.KEY_SOUND, !sound).apply(); render()
+        })
+        alarmBox.addView(gap(8))
+        val torch = Prefs.bool(this, Prefs.TORCH, true)
+        alarmBox.addView(button(if (torch) "🔦 Фонарь жыпылықтауы: қосулы" else "🔦 Фонарь жыпылықтауы: өшірулі", false) {
+            Prefs.set(this, Prefs.TORCH, !torch); render()
         })
         val auto = prefs.getBoolean(SmsWatcherService.KEY_AUTO, false)
         if (full) {
@@ -369,6 +414,23 @@ class MainActivity : Activity() {
         card("🧪", "Тест жасау",
             "Екінші телефон болмаса — осы батырмалар SMS сияқты хабарландыру жасайды. Нағыз тест үшін басқа телефоннан сілтемесі бар SMS жіберіңіз (алдымен «SMS-ті автоматты тексеру» қосулы болсын).",
             null, testBox)
+
+        // ---- APK-алаяқтықтан қорғау ----
+        val apkBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        apkBox.addView(button("🔍 Қосымшаларды қазір тексеру", true) { runAppScan() })
+        if (Build.VERSION.SDK_INT >= 26) {
+            apkBox.addView(gap(8))
+            apkBox.addView(button("🚫 Белгісіз көздерден орнатуды бұғаттау", false) {
+                AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("Белгісіз көздерден орнату")
+                    .setMessage("Ашылған тізімде WhatsApp, Telegram, Chrome, файл менеджері сияқты қосымшаларда «Рұқсат ету» ӨШІРУЛІ болуы керек. Сонда алаяқ жіберген APK өздігінен орнатылмайды.\n\n(CyberQalqan-ды жаңарту керек болса, Chrome-ға уақытша рұқсат беріп, кейін қайта өшіріңіз.)")
+                    .setPositiveButton("Ашу") { _, _ -> try { startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)) } catch (_: Exception) {} }
+                    .setNegativeButton("Кейін", null).show()
+            })
+        }
+        card("📦", "APK-алаяқтықтан қорғау",
+            "Алаяқ «банктің жаңа қосымшасы», «бонус», «eGov жаңарту» деп APK файл жібереді. Орнатсаңыз — телефонды басқарып, SMS-кодтарды оқып, ақшаңызды өзі аударады. CyberQalqan: хабардағы APK файлды таниды, жаңа қосымша орнатылғанда тексереді, бөгде қосымшаға «Арнайы мүмкіндіктер» берілсе — сигналка қағады.",
+            true, apkBox)
 
         // ---- Отбасылық қалқан ----
         val famAct = Family.active(this).size

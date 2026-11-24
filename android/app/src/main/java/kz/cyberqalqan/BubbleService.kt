@@ -53,6 +53,7 @@ class BubbleService : Service() {
         startAsForeground()
         if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) { stopSelf(); return }
         addBubble()
+        guard = InstallGuard.register(this)   // жаңа қосымша орнатылса / Accessibility берілсе — бірден тексеру
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -297,7 +298,10 @@ class BubbleService : Service() {
         }
     }
 
+    private var guard: InstallGuard.Handle? = null
+
     override fun onDestroy() {
+        InstallGuard.unregister(this, guard); guard = null
         removePanel()
         root?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         root = null

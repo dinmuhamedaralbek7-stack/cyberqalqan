@@ -16,6 +16,10 @@ class SmsWatcherService : NotificationListenerService() {
 
     // Бір хабарламаның хабарландыруы бірнеше рет жаңарады — 30 секунд ішінде қайталамаймыз
     private val seen = LinkedHashMap<String, Long>()
+    private var guard: InstallGuard.Handle? = null
+
+    override fun onListenerConnected() { super.onListenerConnected(); if (guard == null) guard = InstallGuard.register(this) }
+    override fun onListenerDisconnected() { InstallGuard.unregister(this, guard); guard = null; super.onListenerDisconnected() }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         if (sbn == null || sbn.packageName == packageName) return
@@ -31,6 +35,23 @@ class SmsWatcherService : NotificationListenerService() {
         ex.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.forEach { parts += it.toString() }
         val text = parts.distinct().joinToString("\n")
         if (text.isBlank()) return
+
+        // WhatsApp/Telegram арқылы APK ФАЙЛ келді (сілтемесіз) — бұл ең қауіпті схема, бірден дабыл
+        val apkName = RiskEngine.apkInText(text)?.takeIf { !it.lowercase().contains("cyberqalqan") }
+        if (apkName != null) {
+            val key = sbn.packageName + "|apk|" + apkName
+            val now = System.currentTimeMillis()
+            if ((seen[key] ?: 0L) < now - 60_000) {
+                seen[key] = now
+                val u0 = RiskEngine.findUrls(text).firstOrNull()
+                val r = RiskEngine.analyze(u0, text, sender)
+                Notify.alert(this, r, text, sender, alarm = true)
+                if (Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(this)) {
+                    try { startActivity(AlarmActivity.intent(this, u0 ?: "", r.score, text, sender, r.brand)) } catch (_: Exception) {}
+                }
+            }
+            return
+        }
 
         val urls = RiskEngine.findUrls(text)
         if (urls.isEmpty()) return

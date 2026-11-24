@@ -110,6 +110,32 @@ object Notify {
         (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
 
     @Suppress("DEPRECATION")
+    fun appAlert(ctx: Context, f: AppScanner.Finding, why: String) {
+        ensureChannels(ctx)
+        val id = ("app|" + f.pkg).hashCode()
+        val alarmPi = PendingIntent.getActivity(ctx, id, AlarmActivity.appIntent(ctx, f, why), piFlags())
+        val delPi = PendingIntent.getActivity(ctx, id + 1,
+            Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:${f.pkg}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), piFlags())
+        val title = if (why == "a11y") "🚨 «${f.label}» телефонды басқару рұқсатын алды!" else "🚨 Қауіпті қосымша орнатылды: «${f.label}»"
+        val n = builder(ctx, CH_ALARM)
+            .setSmallIcon(R.drawable.ic_shield)
+            .setContentTitle(title)
+            .setContentText(f.reasons.firstOrNull() ?: "APK-алаяқтық белгілері")
+            .setStyle(Notification.BigTextStyle().bigText(f.reasons.take(3).joinToString("\n• ", "• ") + "\nДереу өшіріңіз. Банк деректерін енгізсеңіз — банкке қоңырау шалыңыз."))
+            .setContentIntent(alarmPi)
+            .setColor(Color.parseColor("#FF4D6D"))
+            .setPriority(Notification.PRIORITY_MAX)
+            .setCategory(Notification.CATEGORY_ALARM)
+            .setVibrate(ALARM_VIBRATION)
+            .addAction(Notification.Action.Builder(
+                android.graphics.drawable.Icon.createWithResource(ctx, R.drawable.ic_shield), "🗑 Өшіру", delPi).build())
+            .setFullScreenIntent(alarmPi, true)
+            .build()
+        n.flags = n.flags or Notification.FLAG_INSISTENT
+        try { ctx.getSystemService(NotificationManager::class.java).notify(id, n) } catch (_: SecurityException) {}
+    }
+
+    @Suppress("DEPRECATION")
     fun alert(ctx: Context, r: RiskEngine.Result, sms: String, sender: String, alarm: Boolean = false) {
         ensureChannels(ctx)
         val open = Intent(ctx, CheckActivity::class.java).apply {

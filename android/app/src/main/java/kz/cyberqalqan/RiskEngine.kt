@@ -71,6 +71,11 @@ object RiskEngine {
         SmsRule(Regex("скача|установ|орнат|жүкте|apk|приложени|қосымша"), 12, "қосымша орнатуға мәжбүрлеу"),
     )
 
+    /** Хабарламадағы APK файл атауы (WhatsApp/Telegram-да файл ретінде келеді, сілтемесіз) */
+    private val APK_FILE = Regex("[\\p{L}\\w\\-()\\[\\]]{1,60}(?:\\.[\\p{L}\\w\\-]{1,30}){0,3}\\.(apk|xapk|apks|apkm)\\b", RegexOption.IGNORE_CASE)
+    private val INSTALL_BAIT = Regex("(обнов|установ|скача|жаңарт|орнат|жүкте).{0,40}(приложен|қосымша|программ|версию|нұсқа)|(приложен|қосымша).{0,30}(банк|bank|kaspi|halyk|egov|bcc)", RegexOption.IGNORE_CASE)
+    fun apkInText(text: String?): String? = text?.let { APK_FILE.find(it)?.value?.trim() }
+
     private val URL_RE = Regex(
         "(https?://[^\\s\"'<>]+|(?:www\\.)?[a-z0-9\\-]+(?:\\.[a-z0-9\\-]+)*\\.[a-z]{2,24}(?:/[^\\s\"'<>]*)?)",
         RegexOption.IGNORE_CASE
@@ -190,8 +195,14 @@ object RiskEngine {
         }
 
         val text = sms?.lowercase(Locale.ROOT).orEmpty()
+        var apk = url.lowercase(Locale.ROOT).let { Regex("\\.(apk|xapk|apks|apkm)(\\?|#|$)").containsMatchIn(it.substringBefore('#')) }
         if (text.isNotBlank()) {
             for (r in SMS_RULES) if (r.re.containsMatchIn(text)) add(r.weight, "Хабарламада: ${r.title}")
+            apkInText(text)?.let { f ->
+                apk = true
+                add(60, "Хабарламада APK файл («${f.take(40)}») — орнатсаңыз, телефоныңыз алаяқтың қолына өтеді")
+            }
+            if (INSTALL_BAIT.containsMatchIn(text)) add(15, "Банк/мемлекет атынан қосымша орнатуды сұрайды — ресми қосымшалар тек Play Store/App Store-да")
         }
 
         val snd = sender?.trim().orEmpty()
@@ -207,7 +218,9 @@ object RiskEngine {
             }
         }
 
-        val res = score.coerceIn(if (official) 2 else 0, 99)
+        // APK — Қазақстандағы ең қауіпті схема: орнатылса, телефон толық басқаруға өтеді
+        if (apk) score = maxOf(score, 88)
+        val res = score.coerceIn(if (official && !apk) 2 else 0, 99)
         return Result(res, reasons.sortedByDescending { it.first }.map { it.second }, url.ifEmpty { null }, brand)
     }
 
@@ -215,6 +228,6 @@ object RiskEngine {
         score >= 70 -> "🚨 Өте қауіпті — баспаңыз!"
         score >= 40 -> "⚠️ Күдікті сілтеме"
         score >= 20 -> "🟡 Абай болыңыз"
-        else -> "✅ Қауіпсіз сияқты"
+        else -> "✅ Айқын қауіп табылмады"
     }
 }

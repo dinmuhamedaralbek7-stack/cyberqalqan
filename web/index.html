@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="format-detection" content="telephone=no">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-CHxhYmqeOjRC1A0QNCcEHDCxtbB23f8tFAqb0BXvgy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-XNYk/UqPh2vdqn6W3gm6OrR5oa/5gbZnVL1rXfmrPKE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="theme-color" content="#05070d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -612,6 +612,8 @@ const PHONE_CC = [
 ["998","🇺🇿 Өзбекстан"],["996","🇰🇬 Қырғызстан"],["992","🇹🇯 Тәжікстан"],["993","🇹🇲 Түрікменстан"],["994","🇦🇿 Әзербайжан"],["995","🇬🇪 Грузия"],["374","🇦🇲 Армения"],["375","🇧🇾 Беларусь"],["380","🇺🇦 Украина"],["371","🇱🇻 Латвия"],["370","🇱🇹 Литва"],["372","🇪🇪 Эстония"],["971","🇦🇪 БАӘ"],["234","🇳🇬 Нигерия"],["255","🇹🇿 Танзания"],["880","🇧🇩 Бангладеш"],["855","🇰🇭 Камбоджа"],["856","🇱🇦 Лаос"],["225","🇨🇮 Кот-д'Ивуар"],["44","🇬🇧 Ұлыбритания"],["49","🇩🇪 Германия"],["90","🇹🇷 Түркия"],["86","🇨🇳 Қытай"],["91","🇮🇳 Үндістан"],["62","🇮🇩 Индонезия"],["63","🇵🇭 Филиппин"],["84","🇻🇳 Вьетнам"],["66","🇹🇭 Тайланд"],["48","🇵🇱 Польша"],["1","🇺🇸 АҚШ / Канада"]
 ];
 const KZ_OPS = {"700":"Altel","708":"Altel","701":"Kcell","702":"Kcell","775":"Kcell / Activ","778":"Kcell / Activ","705":"Beeline","771":"Beeline","776":"Beeline","777":"Beeline","707":"Tele2","747":"Tele2","706":"Izi / Beeline","704":"Altel"};
+const APK_FILE_RE=/[\p{L}\w\-()\[\]]{1,60}(?:\.[\p{L}\w\-]{1,30}){0,3}\.(apk|xapk|apks|apkm)\b/iu;
+const INSTALL_BAIT_RE=/(обнов|установ|скача|жаңарт|орнат|жүкте).{0,40}(приложен|қосымша|программ|версию|нұсқа)|(приложен|қосымша).{0,30}(банк|bank|kaspi|halyk|egov|bcc)/i;
 const SMS_RULES = [
 {id:"urgency", re:/срочн|немедлен|в течени[ие]\s*\d|24\s*(час|сағ)|шұғыл|тез арада|дереу|соңғы мүмкіндік|последн|истека|мерзімі өт/i, w:10,
 t:"Шұғылдық пен уақыт қысымы", d:"«24 сағат», «дереу» деген сөздер сізді ойланбай әрекет етуге итермелейді. Ойлануға уақыт берілмесе — бұл алаяқтықтың басты белгісі."},
@@ -696,10 +698,14 @@ if(hits.length && !official) add(Math.min(hits.length*6,22),`Күдікті кі
 if(host.length>32 && !official) add(5,"Домен атауы тым ұзын");
 }
 // SMS text
-const tactics=[];
+const tactics=[]; let apkName="";
 if(sms){
 for(const r of SMS_RULES){ if(r.re.test(sms)){ tactics.push(r); add(r.w,"SMS-те: "+r.t.toLowerCase()); } }
-if(!rawUrl){ const x=extractUrl(sms); if(x) return analyze(x,sms,sender); }
+// WhatsApp/Telegram-да APK ФАЙЛ ретінде келеді (сілтемесіз) — «Kaspi_Bonus.apk», «halyk_update.apk»
+const am=sms.match(APK_FILE_RE); apkName=(am&&!/cyberqalqan/i.test(am[0]))?am[0]:"";
+if(!rawUrl){ const x=extractUrl(sms); if(x && !(apkName && apkName.toLowerCase().endsWith(x.toLowerCase()))) return analyze(x,sms,sender); }
+if(apkName){ fileExt=fileExt||"apk"; add(60,`Хабарламада APK файл («${apkName.slice(0,40)}») — орнатсаңыз, телефоныңыз алаяқтың басқаруына өтеді: SMS-кодтарды оқиды, банк қосымшасынан ақша аударады`,"bad"); }
+if(INSTALL_BAIT_RE.test(sms)) add(15,"Банк/мемлекет атынан қосымша орнатуды сұрайды — ресми қосымшалар тек Play Store / App Store-да","bad");
 }
 // Sender
 const origin=[]; let senderInfo=null;
@@ -740,9 +746,10 @@ if(brand) origin.splice(2,0,[official?"Ресми ұйым":"Кімнің аты
 }
 if(!origin.length) origin.push(["Мәлімет","Жіберуші нөмірін немесе сілтемені енгізсеңіз, шығу тегін көрсетемін"]);
 if(official && !fileExt) score=Math.min(score,Math.max(3,score));
+if(fileExt && /apk/i.test(fileExt)) score=Math.max(score,88); // APK — телефон толық алаяқтың қолына өтеді
 score=Math.max(0,Math.min(99,Math.round(score)));
 if(official && score<10) score=Math.max(score,2);
-return {score,sig,brand,official,host,url:P&&P.u?P.u.href:rawUrl,fileExt,tactics,origin,senderInfo,sms};
+return {score,sig,brand,official,host,url:P&&P.u?P.u.href:rawUrl,fileExt,apkName,tactics,origin,senderInfo,sms};
 }
 /* ---------- Consequences / help ---------- */
 function consequences(r){
@@ -800,23 +807,57 @@ let sharedAC=null;
 function audioCtx(){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; if(!sharedAC||sharedAC.state==="closed") sharedAC=new AC(); if(sharedAC.state==="suspended") sharedAC.resume().catch(()=>{}); return sharedAC; }catch(e){ return null; } }
 // iOS дыбысты тек саусақпен басқаннан кейін рұқсат етеді — бірінші басуда дыбысты «оятып» қоямыз
 ["touchend","pointerdown","keydown"].forEach(ev=>addEventListener(ev,function unlock(){ const c=audioCtx(); if(c){ try{ const b=c.createBuffer(1,1,22050), src=c.createBufferSource(); src.buffer=b; src.connect(c.destination); src.start(0); }catch(e){} } removeEventListener(ev,unlock,true); },{capture:true,once:true}));
+/* 🚨 Сигналка — көлік сигнализациясы сияқты: ұлу → хай-лоу → шиқылдау → жылдам «вуп», шексіз қайталанады.
+   WAV файл браузерде жасалады да <audio> арқылы ойнатылады: iPhone-да «Без звука» қосқышы Web Audio-ны
+   өшіреді, ал <audio> элементі бәрібір естіледі. Болмаса — Web Audio-ға қайтамыз. */
+let sirenUrl=null, sirenEl=null;
+function sirenWav(){
+ if(sirenUrl) return sirenUrl;
+ const SR=22050, pcm=[]; let ph=0;
+ const tone=(sec,f0,f1=f0,gate=0)=>{ const n=Math.round(sec*SR); for(let i=0;i<n;i++){ const f=f0+(f1-f0)*i/n; ph+=2*Math.PI*f/SR;
+  let v=Math.tanh(3.2*Math.sin(ph))*0.97; if(gate&&((i/SR)%(2*gate))>=gate) v=0; pcm.push(v); } };
+ for(let k=0;k<3;k++){ tone(0.32,700,1700); tone(0.18,1700,700); }
+ for(let k=0;k<9;k++){ tone(0.11,1450); tone(0.11,950); }
+ tone(1.4,2800,2800,0.05);
+ for(let k=0;k<4;k++) tone(0.24,600,2100);
+ const n=pcm.length, buf=new ArrayBuffer(44+n*2), dv=new DataView(buf);
+ const w=(o,str)=>{ for(let i=0;i<str.length;i++) dv.setUint8(o+i,str.charCodeAt(i)); };
+ w(0,"RIFF"); dv.setUint32(4,36+n*2,true); w(8,"WAVE"); w(12,"fmt "); dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true);
+ dv.setUint32(24,SR,true); dv.setUint32(28,SR*2,true); dv.setUint16(32,2,true); dv.setUint16(34,16,true); w(36,"data"); dv.setUint32(40,n*2,true);
+ for(let i=0;i<n;i++) dv.setInt16(44+i*2,Math.max(-1,Math.min(1,pcm[i]))*32767,true);
+ sirenUrl=URL.createObjectURL(new Blob([buf],{type:"audio/wav"}));
+ return sirenUrl;
+}
+function sirenAudio(){ if(!sirenEl){ sirenEl=new Audio(); sirenEl.loop=true; sirenEl.preload="auto"; sirenEl.setAttribute("playsinline",""); try{ sirenEl.src=sirenWav(); }catch(e){} } return sirenEl; }
+// Бірінші түртуде дыбысты «ашып» қоямыз — кейін дабыл өздігінен қосыла алады (iOS/Chrome саясаты)
+["touchend","pointerdown","keydown"].forEach(ev=>addEventListener(ev,function un(){ try{ const a=sirenAudio(); a.muted=true; const p=a.play(); if(p&&p.then) p.then(()=>{ a.pause(); a.currentTime=0; a.muted=false; }).catch(()=>{ a.muted=false; }); }catch(e){} removeEventListener(ev,un,true); },{capture:true,once:true}));
 function playSiren(){
 stopSiren();
 try{
+ const a=sirenAudio(); a.muted=false; a.volume=1; a.currentTime=0;
+ const p=a.play();
+ siren={el:a};
+ if(p&&p.catch) p.catch(()=>{ siren=null; playSirenWA(); });
+ return;
+}catch(e){}
+playSirenWA();
+}
+function playSirenWA(){
+try{
 const ctx=audioCtx(); if(!ctx) return;
 const o=ctx.createOscillator(), g=ctx.createGain();
-o.type="sawtooth"; o.connect(g); g.connect(ctx.destination);
-g.gain.setValueAtTime(0.0001,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+0.05);
-const sweep=()=>{ const t=ctx.currentTime; o.frequency.cancelScheduledValues(t); o.frequency.setValueAtTime(650,t);
-o.frequency.linearRampToValueAtTime(1250,t+0.35); o.frequency.linearRampToValueAtTime(650,t+0.7);
-o.frequency.linearRampToValueAtTime(1250,t+1.05); o.frequency.linearRampToValueAtTime(650,t+1.4); };
+o.type="square"; o.connect(g); g.connect(ctx.destination);
+g.gain.setValueAtTime(0.0001,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.9,ctx.currentTime+0.05);
+const sweep=()=>{ const t=ctx.currentTime; o.frequency.cancelScheduledValues(t); o.frequency.setValueAtTime(700,t);
+o.frequency.linearRampToValueAtTime(1700,t+0.32); o.frequency.linearRampToValueAtTime(700,t+0.5);
+o.frequency.linearRampToValueAtTime(1700,t+0.82); o.frequency.linearRampToValueAtTime(700,t+1.0);
+for(let k=0;k<4;k++){ o.frequency.setValueAtTime(1450,t+1.0+k*0.22); o.frequency.setValueAtTime(950,t+1.11+k*0.22); } };
 sweep(); o.start();
-// Адам өзі өшіргенше тоқтамайды
-const iv=setInterval(()=>{ if(ctx.state==="suspended") ctx.resume().catch(()=>{}); sweep(); },1400);
+const iv=setInterval(()=>{ if(ctx.state==="suspended") ctx.resume().catch(()=>{}); sweep(); },1880);
 siren={ctx,o,iv};
 }catch(e){}
 }
-function stopSiren(){ try{ if(siren){ clearInterval(siren.iv); siren.o.stop(); } }catch(e){} siren=null; }
+function stopSiren(){ try{ if(siren){ if(siren.el){ siren.el.pause(); siren.el.currentTime=0; } else { clearInterval(siren.iv); siren.o.stop(); } } }catch(e){} siren=null; }
 let vibIv=null;
 function startVibe(){
 try{ if(window.CQApp&&CQApp.vibrateAlarm){ CQApp.vibrateAlarm(); return; } }catch(e){}
@@ -824,9 +865,11 @@ try{ if(navigator.vibrate){ const v=()=>navigator.vibrate([700,250,700,250,700])
 }
 function stopVibe(){ clearInterval(vibIv); vibIv=null; try{ if(window.CQApp&&CQApp.stopVibrate) CQApp.stopVibrate(); }catch(e){} try{ navigator.vibrate&&navigator.vibrate(0); }catch(e){} }
 function showAlarm(p,r){
-$("alPct").textContent=`Бұл сілтеме ${p}% қауіпті`;
-$("alTx").textContent=(r.brand&&!r.official?`Алаяқ «${r.brand.name}» атын жамылған. `:"")+"Сілтемені ашсаңыз, ақшаңыз бен деректеріңіз ұрлануы мүмкін.";
-$("alUrl").textContent=String(r.url).slice(0,140);
+const isApk=r.fileExt&&/apk/i.test(r.fileExt);
+$("alPct").textContent=isApk?`APK файл — ${p}% қауіпті`:`Бұл сілтеме ${p}% қауіпті`;
+$("alTx").textContent=isApk?"Бұл файлды орнатсаңыз, алаяқ телефоныңызды басқарып, SMS-кодтарды оқып, банктен ақша аударады. Банктер қосымшаны ешқашан SMS/WhatsApp арқылы жібермейді."
+ :(r.brand&&!r.official?`Алаяқ «${r.brand.name}» атын жамылған. `:"")+"Сілтемені ашсаңыз, ақшаңыз бен деректеріңіз ұрлануы мүмкін.";
+$("alUrl").textContent=String(r.url||r.apkName||"").slice(0,140);
 $("alarm").classList.add("on");
 startVibe();
 playSiren();
@@ -863,7 +906,8 @@ oa.classList.toggle("hidden",!canOpen); oa.dataset.url=r.url||""; oa.dataset.arm
 oa.textContent = p>=40 ? "⚠️ Бәрібір ашу (ұсынылмайды)" : "🌐 Сайтты браузерде ашу";
 oa.style.color = p>=40 ? "var(--bad)" : "var(--txt)"; oa.dataset.risky = p>=40 ? "1" : "";
 famOnResult(p,r);
-if(p>=60 && r.url && lastAlarm!==r.url){ lastAlarm=r.url; showAlarm(p,r); }
+const alKey=r.url||(r.apkName?"apk:"+r.apkName:"");
+if(p>=60 && alKey && lastAlarm!==alKey){ lastAlarm=alKey; showAlarm(p,r); }
 const bd=$("badge"); bd.textContent=p+"%"; bd.style.background=p>=70?"var(--bad)":p>=40?"var(--warn)":"var(--ok)"; bd.classList.remove("hidden");
 }
 function showSteps(i){ document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",+t.dataset.t===i)); const s=$("steps"); s.replaceChildren(); for(const x of STEPS[i]) s.append(el("li",null,x)); }
@@ -1145,7 +1189,8 @@ kk:{title:"Отбасылық қалқан",sub:"Күмәнді хабарлам
  whoMe:"Сіздің жақыныңызға ({n})",whoAnon:"Сіздің жақыныңызға",whatBrand:"«{b}» атынан",whatBank:"банк атынан",whatAny:"",
  testMsg:"🧪 CyberQalqan СЫНАҚ хабарламасы. Бұл — тексеру ғана, қауіп жоқ. Нақты қауіп болса, осындай ескерту келеді.",
  tTitle:"ҚАУІПТІ ХАБАРЛАМА АНЫҚТАЛДЫ!",tTitleW:"КҮДІКТІ ХАБАРЛАМА АНЫҚТАЛДЫ",tBank:"Бұл хабарламада банктік алаяқтық белгілері бар. Сілтемені ашпаңыз. SMS-кодты ешкімге бермеңіз.",
- tAny:"Бұл хабарламада алаяқтық белгілері бар. Сілтемені ашпаңыз. SMS-кодты, құпиясөзді ешкімге бермеңіз.",tScore:"Қауіп бағасы: {p}% — CyberQalqan талдауы бойынша",
+ tAny:"Бұл хабарламада алаяқтық белгілері бар. Сілтемені ашпаңыз. SMS-кодты, құпиясөзді ешкімге бермеңіз.",
+ tApk:"Бұл — APK-алаяқтық! Файлды ашпаңыз, орнатпаңыз. Банктер мен eGov қосымшаны ешқашан SMS/WhatsApp арқылы жібермейді. Орнатып қойсаңыз — интернетті өшіріп, қосымшаны жойыңыз да, банкке қоңырау шалыңыз.",tScore:"Қауіп бағасы: {p}% — CyberQalqan талдауы бойынша",
  btnFam:"👨‍👩‍👧 ТУЫСЫМА ХАБАРЛАУ",btnWhat:"❓ НЕ ІСТЕУ КЕРЕК?",btnRe:"🔄 ҚАЙТА ТЕКСЕРУ",needContact:"Алдымен «Отбасылық қалқан» бөлімінде сенімді адам қосыңыз",
  needActive:"Туысыңыз әлі растамаған — растау кодын енгізіңіз",famOff:"Отбасылық қорғаныс өшірулі",
  mTitle:"Туысыңызға жіберілетін хабарлама",mTo:"Кімге",mSend:"📨 Жіберу",mSms:"SMS қолданбасы ашылады — онда «Жіберу» батырмасын басыңыз",mWa:"WhatsApp ашылады — онда «Жіберу» батырмасын басыңыз",
@@ -1175,7 +1220,8 @@ ru:{title:"Семейный щит",sub:"Если пришло подозрит�
  whoMe:"Вашему близкому ({n})",whoAnon:"Вашему близкому",whatBrand:"от имени «{b}»",whatBank:"от имени банка",whatAny:"",
  testMsg:"🧪 ТЕСТОВОЕ сообщение CyberQalqan. Это только проверка, угрозы нет. При реальной угрозе придёт такое предупреждение.",
  tTitle:"ОБНАРУЖЕНО ОПАСНОЕ СООБЩЕНИЕ!",tTitleW:"ОБНАРУЖЕНО ПОДОЗРИТЕЛЬНОЕ СООБЩЕНИЕ",tBank:"В этом сообщении есть признаки банковского мошенничества. Не открывайте ссылку. Никому не сообщайте SMS-код.",
- tAny:"В этом сообщении есть признаки мошенничества. Не открывайте ссылку. Никому не сообщайте SMS-код и пароль.",tScore:"Оценка риска: {p}% — по анализу CyberQalqan",
+ tAny:"В этом сообщении есть признаки мошенничества. Не открывайте ссылку. Никому не сообщайте SMS-код и пароль.",
+ tApk:"Это APK-мошенничество! Не открывайте и не устанавливайте файл. Банки и eGov никогда не присылают приложения через SMS/WhatsApp. Если уже установили — отключите интернет, удалите приложение и позвоните в банк.",tScore:"Оценка риска: {p}% — по анализу CyberQalqan",
  btnFam:"👨‍👩‍👧 СООБЩИТЬ РОДСТВЕННИКУ",btnWhat:"❓ ЧТО ДЕЛАТЬ?",btnRe:"🔄 ПРОВЕРИТЬ СНОВА",needContact:"Сначала добавьте доверенного человека в разделе «Семейный щит»",
  needActive:"Родственник ещё не подтвердил — введите код подтверждения",famOff:"Семейная защита выключена",
  mTitle:"Сообщение для родственника",mTo:"Кому",mSend:"📨 Отправить",mSms:"Откроется приложение SMS — нажмите там «Отправить»",mWa:"Откроется WhatsApp — нажмите там «Отправить»",
@@ -1330,7 +1376,7 @@ function famOnResult(p,r){
  const bank=r.brand&&!r.official&&/bank|банк|kaspi|halyk|jusan|forte|freedom|otbasy|centercredit|homebank/i.test(r.brand.name+" "+(r.brand.k||[]).join(" "));
  const bankSms=/банк|bank|карт|card|kaspi|halyk|sms-?код|код/i.test(r.sms||"");
  $("thTitle").textContent=p>=60?ft("tTitle"):ft("tTitleW");
- $("thText").textContent=(bank||bankSms)?ft("tBank"):ft("tAny");
+ $("thText").textContent=(r.fileExt&&/apk/i.test(r.fileExt))?ft("tApk"):(bank||bankSms)?ft("tBank"):ft("tAny");
  $("thScore").textContent=ft("tScore",{p:String(p)});
  const ul=$("thSigs");
  if(threatFor!==r){ threatFor=r; ul.replaceChildren();
