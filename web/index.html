@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="format-detection" content="telephone=no">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-oJUEJ+iK0IUpOVG/MKIr3ppmAVnFLyepfxRs23HdAAE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-fPlL/fZZKLne9WhhJtKkyFQ5S+D7jCnrjRGKD1zPyXg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="theme-color" content="#05070d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -347,9 +347,59 @@ button,a,.chip,.tab{touch-action:manipulation}
 .apk-res.bad{border-color:rgba(255,77,109,.6)}.apk-res .h{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--mut);word-break:break-all}
 body.app .apk-field{display:none}
 @media (prefers-reduced-motion:reduce){.one-btn .ob-ring{animation:none}}
+
+/* ---- Бұлдыр анимациялы фон (50%) ---- */
+.bg-anim{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;overflow:hidden;contain:strict}
+.bg-anim i{position:absolute;border-radius:50%;will-change:transform}
+.bg-anim i:nth-child(1){width:46vmax;height:46vmax;left:-8%;top:-6%;background:radial-gradient(circle,rgba(60,242,195,.55) 0,rgba(60,242,195,.18) 35%,transparent 70%);animation:blobA 22s ease-in-out infinite alternate}
+.bg-anim i:nth-child(2){width:52vmax;height:52vmax;right:-14%;top:8%;background:radial-gradient(circle,rgba(91,140,255,.55) 0,rgba(91,140,255,.18) 35%,transparent 70%);animation:blobB 27s ease-in-out infinite alternate}
+.bg-anim i:nth-child(3){width:40vmax;height:40vmax;left:22%;bottom:-18%;background:radial-gradient(circle,rgba(139,92,255,.5) 0,rgba(139,92,255,.15) 35%,transparent 70%);animation:blobC 31s ease-in-out infinite alternate}
+.bg-anim i:nth-child(4){width:24vmax;height:24vmax;left:55%;top:30%;background:radial-gradient(circle,rgba(255,77,109,.45) 0,rgba(255,77,109,.12) 35%,transparent 70%);opacity:.45;animation:blobA 19s ease-in-out infinite alternate-reverse}
+@keyframes blobA{0%{transform:translate(0,0) scale(1)}50%{transform:translate(18vw,12vh) scale(1.15)}100%{transform:translate(6vw,30vh) scale(.9)}}
+@keyframes blobB{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-22vw,18vh) scale(.88)}100%{transform:translate(-8vw,-6vh) scale(1.12)}}
+@keyframes blobC{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-14vw,-20vh) scale(1.18)}100%{transform:translate(16vw,-8vh) scale(.95)}}
+@media (prefers-reduced-motion:reduce){.bg-anim i{animation:none}}
+body.app .bg-anim{display:none}
+/* ---- ИИ-кеңесші ---- */
+.ai-chat{max-width:760px;margin:0 auto 34px;padding:18px;border:1px solid var(--line);border-radius:22px;background:rgba(14,21,38,.9)}
+.aic-head{display:flex;align-items:center;gap:12px}
+.aic-av{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:linear-gradient(135deg,rgba(60,242,195,.25),rgba(91,140,255,.25));border:1px solid rgba(60,242,195,.4);flex:none}
+.aic-head b{font-size:17px;display:block}.aic-head small{color:var(--mut);font-size:12.5px}
+.aic-head>div:nth-child(2){flex:1;min-width:0}
+.aic-spk{background:none;border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:8px 10px;font-size:16px;cursor:pointer}
+.aic-spk[aria-pressed=false]{opacity:.45}
+.aic-chips{display:flex;gap:8px;overflow-x:auto;margin:14px 0 10px;padding-bottom:4px;scrollbar-width:none}
+.aic-chips button{flex:none;background:rgba(91,140,255,.1);border:1px solid rgba(91,140,255,.35);color:var(--txt);border-radius:99px;padding:8px 13px;font-size:13px;cursor:pointer;font-family:inherit}
+.aic-chips button:hover{border-color:var(--acc)}
+.aic-log{display:flex;flex-direction:column;gap:10px;max-height:380px;overflow-y:auto;padding:4px 2px;scroll-behavior:smooth}
+.aic-log:empty{display:none}
+.aic-m{max-width:88%;padding:10px 13px;border-radius:16px;font-size:14.5px;white-space:pre-wrap;word-wrap:break-word;line-height:1.45;animation:aicIn .25s ease}
+.aic-m.u{align-self:flex-end;background:linear-gradient(135deg,var(--acc),#7af7da);color:#03140f;border-bottom-right-radius:5px;font-weight:600}
+.aic-m.a{align-self:flex-start;background:var(--card2);border:1px solid var(--line);border-bottom-left-radius:5px}
+.aic-m.a.err{border-color:var(--warn)}
+.aic-m .src{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.aic-m .src a{font-size:11.5px;color:var(--acc);border:1px solid var(--line);border-radius:8px;padding:2px 7px;text-decoration:none}
+.aic-m .say{margin-top:6px;background:none;border:0;color:var(--mut);font-size:12.5px;cursor:pointer;padding:0;font-family:inherit}
+.aic-typing{display:inline-flex;gap:4px}.aic-typing i{width:7px;height:7px;border-radius:50%;background:var(--mut);animation:pulse 1s infinite}.aic-typing i:nth-child(2){animation-delay:.2s}.aic-typing i:nth-child(3){animation-delay:.4s}
+@keyframes aicIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.aic-in{display:flex;gap:8px;margin-top:12px;align-items:center}
+.aic-in input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:14px;padding:13px 14px;font-size:15px;font-family:inherit}
+.aic-in input:focus{outline:none;border-color:var(--acc)}
+.aic-mic,.aic-send{flex:none;width:48px;height:48px;border-radius:14px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font-size:20px;cursor:pointer}
+.aic-send{background:linear-gradient(135deg,var(--acc),#7af7da);color:#03140f;border:0;font-weight:900}
+.aic-mic.rec{background:var(--bad);border-color:var(--bad);animation:micP 1.1s infinite}
+@keyframes micP{0%{box-shadow:0 0 0 0 rgba(255,77,109,.6)}100%{box-shadow:0 0 0 16px rgba(255,77,109,0)}}
+body.ai-only .wrap>*:not(#aiChat){display:none!important}
+body.ai-only .wrap{padding-top:16px}
+body.ai-only .ai-chat{margin-bottom:0}
+body.ai-only .aic-log{max-height:calc(100vh - 290px)}
+/* ---- Жақын адамға: жазу / қоңырау ---- */
+.fam-quick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 4px}
+.fam-quick a,.fam-quick button{text-align:center;text-decoration:none}
 </style>
 </head>
 <body>
+<div class="bg-anim" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <div class="wrap">
 <nav>
 <div class="logo">
@@ -358,6 +408,7 @@ Cyber<b>Qalqan</b>
 </div>
 <div class="navr">
 <div class="pill"><span class="dot"></span><span id="aiState">Қорғаныс белсенді</span></div>
+<a class="dl-nav" href="#aiChat" title="ИИ-кеңесші">🤖</a>
 <a class="dl-nav fam-nav" href="#family" id="navFam">👨‍👩‍👧</a>
 <a class="dl-nav" href="#download">📲 Жүктеу</a>
 </div>
@@ -371,6 +422,18 @@ Cyber<b>Qalqan</b>
 <div class="ob-hint">Күдікті сілтемені, хабарды немесе APK файл атауын көшіріп, <b>бір батырманы</b> басыңыз — қалғанын CyberQalqan өзі жасайды</div>
 <div class="cq-stats hidden" id="cqStats" aria-live="polite"></div>
 </header>
+<section class="ai-chat" id="aiChat" aria-label="ИИ-кеңесші">
+<div class="aic-head"><div class="aic-av">🤖</div><div><b>ИИ-кеңесші</b><small id="aicState">Алаяқтық туралы кез келген сұрақ — жазып не айтып сұраңыз</small></div><button type="button" class="aic-spk" id="aicSpk" aria-pressed="true" title="Жауапты дауыстап оқу">🔊</button></div>
+<div class="aic-chips" id="aicChips">
+<button type="button" data-news="1">📰 Жаңа алаяқтық схемалары</button>
+<button type="button">📞 Банктен қоңырау шалып, SMS-код сұрады. Не істеймін?</button>
+<button type="button">📦 Біреу APK файл жіберді. Ашуға бола ма?</button>
+<button type="button">👪 Туысым жаңа нөмірден ақша сұрады. Қалай тексеремін?</button>
+<button type="button">💸 Алаяққа ақша аударып қойдым. Енді не істеймін?</button>
+</div>
+<div class="aic-log" id="aicLog" aria-live="polite"></div>
+<form class="aic-in" id="aicForm" autocomplete="off"><button type="button" class="aic-mic" id="aicMic" aria-label="Дауыспен сұрау">🎤</button><input id="aicTxt" maxlength="600" placeholder="Сұрағыңызды жазыңыз…" aria-label="Сұрақ"><button class="aic-send" id="aicSend" aria-label="Жіберу">➤</button></form>
+</section>
 <div class="stage">
 <div class="phone">
 <div class="ph-top"><span>9:41</span><span class="ph-isl"></span><span>📶 🔋</span></div>
@@ -1436,6 +1499,7 @@ function famRender(){
   const ct=el("div","fam-ct");
   const top=el("div","fam-ct-top"); top.append(el("b",null,c.name), el("span","st "+(c.status==="active"?"st-act":"st-pend"),c.status==="active"?ft("stAct"):ft("stPend")));
   ct.append(top, el("div","fam-ct-meta",c.rel+" · "+maskPhone(c.phone)+" · "+(c.method==="whatsapp"?ft("viaWa"):ft("viaSms"))));
+  ct.append(quickContact(c.phone,c.method));
   const acts=el("div","fam-btns");
   if(c.status==="pending"){
    acts.append(bigBtn("btn-fam",ft("reinvite"),()=>{ const ok=composeTo(c,ftL(c.lang,"inviteMsg",{c:c.name,m:FAM.myName||ftL(c.lang,"me"),l:inviteLink(c)})); if(!ok){ famModal(box=>{ box.append(el("h3",null,ft("invite")), el("div","fm-note",ft("dDesk"))); const m=ftL(c.lang,"inviteMsg",{c:c.name,m:FAM.myName||ftL(c.lang,"me"),l:inviteLink(c)}); box.append(el("pre","fm-msg",m)); const a=el("div","fm-acts"); a.append(bigBtn("btn-ghost",ft("copy"),async()=>{ try{await navigator.clipboard.writeText(m);toast(ft("copied"));}catch(e){} }), bigBtn("btn-ghost",ft("cancel"),closeFamModal)); box.append(a); }); } }));
@@ -1462,7 +1526,8 @@ function famRender(){
  const cb=(t)=>{ const l=el("label","fam-cb"); const c=el("input"); c.type="checkbox"; l.append(c, el("span",null,t)); return [l,c]; };
  const [l1,c1]=cb(ft("c1")), [l2,c2]=cb(ft("c2"));
  const err=el("div","fam-err"); err.setAttribute("role","alert");
- form.append(fld(ft("name"),iName), fld(ft("rel"),iRel), fld(ft("phone"),iPhone,ft("phoneHint")), fld(ft("method"),iMeth), fld(ft("msgLang"),iLang), l1, l2, el("p","fam-hint",ft("autoNote")), err);
+ const qBox=el("div"); iPhone.addEventListener("input",()=>{ const ph=normPhone(iPhone.value); qBox.replaceChildren(); if(ph) qBox.append(quickContact(ph,iMeth.value)); });
+ form.append(fld(ft("name"),iName), fld(ft("rel"),iRel), fld(ft("phone"),iPhone,ft("phoneHint")), qBox, fld(ft("method"),iMeth), fld(ft("msgLang"),iLang), l1, l2, el("p","fam-hint",ft("autoNote")), err);
  const fa=el("div","fam-btns"); const sv=el("button","btn btn-main btn-big",ft("save")); sv.type="submit"; fa.append(sv, bigBtn("btn-ghost",ft("cancel"),()=>form.classList.add("hidden"))); form.append(fa);
  form.addEventListener("submit",e=>{ e.preventDefault();
   const name=iName.value.trim().replace(/[<>{}]/g,""); const ph=normPhone(iPhone.value);
@@ -1570,6 +1635,92 @@ $("apkFile").addEventListener("change",async e=>{
 });
 
 
+/* ---------- Жақын адамға бір басумен: жазу / қоңырау ---------- */
+function callPhone(ph){
+ const B=appBridge();
+ if(B&&B.call){ try{ B.call(ph); return; }catch(e){} }
+ const a=document.createElement("a"); a.href="tel:"+ph; document.body.append(a); a.click(); a.remove();
+}
+function writePhone(ph,method){
+ const B=appBridge();
+ if(B&&B.compose){ try{ if(B.compose(method||"sms",ph,"")) return; }catch(e){} }
+ const url=method==="whatsapp"?"https://wa.me/"+ph.replace(/\D/g,""):"sms:"+ph;
+ const a=document.createElement("a"); a.href=url; a.rel="noopener"; if(method==="whatsapp") a.target="_blank"; document.body.append(a); a.click(); a.remove();
+}
+function quickContact(ph,method){
+ const ru=famLang==="ru"; const w=el("div","fam-quick");
+ w.append(bigBtn("btn-ghost",(method==="whatsapp"?"💬 ":"✉️ ")+(ru?"Написать":"Жазу"),()=>writePhone(ph,method)));
+ w.append(bigBtn("btn-main","📞 "+(ru?"Позвонить":"Қоңырау шалу"),()=>callPhone(ph)));
+ return w;
+}
+/* ---------- ИИ-кеңесші: мәтін + дауыс ---------- */
+(function(){
+ const log=$("aicLog"), form=$("aicForm"), txt=$("aicTxt"), mic=$("aicMic"), spk=$("aicSpk"), st=$("aicState");
+ if(!log||!form) return;
+ if(/[?&]inapp=ai\b/.test(location.search)||location.hash==="#ai") { document.body.classList.add("ai-only"); }
+ const H=[]; let busy=false, autoSpeak=true, curAudio=null, enabled=null;
+ try{ autoSpeak=localStorage.getItem("cq_ai_voice")!=="0"; }catch(e){}
+ const setSpk=()=>spk.setAttribute("aria-pressed",String(autoSpeak)); setSpk();
+ spk.addEventListener("click",()=>{ autoSpeak=!autoSpeak; setSpk(); try{localStorage.setItem("cq_ai_voice",autoSpeak?"1":"0");}catch(e){} if(!autoSpeak&&curAudio){curAudio.pause();} toast(autoSpeak?"🔊 Жауаптар дауыстап оқылады":"🔇 Дауыс өшірілді"); });
+ fetch("/api/chat").then(r=>r.json()).then(j=>{ enabled=!!j.enabled; if(!enabled) st.textContent="⚠️ ИИ әлі қосылмаған — әкімші OPENAI_API_KEY енгізуі керек"; }).catch(()=>{});
+ const add=(role,text,extra)=>{ const m=el("div","aic-m "+(role==="user"?"u":"a")); m.textContent=text; if(extra) extra(m); log.append(m); log.scrollTop=log.scrollHeight; return m; };
+ const ERR={rate_limited:"Тым жиі сұрадыңыз — бір минуттан кейін қайталаңыз.",openai_quota:"ИИ лимиті таусылды. Әкімші OpenAI балансын тексеруі керек.",disabled:"ИИ әлі қосылмаған.",timeout:"Жауап кешікті — қайталап көріңіз."};
+ const FALLBACK="Негізгі ереже: SMS-кодты, карта деректерін ешкімге айтпаңыз; бейтаныс APK орнатпаңыз; «банк қызметкері» қоңырау шалса — тұтқаны қойып, картаның артындағы нөмірге өзіңіз қоңырау шалыңыз. Ақша аударып қойсаңыз — дереу банкке және 102-ге хабарласыңыз.";
+ async function speak(text){
+  if(curAudio){ curAudio.pause(); curAudio=null; }
+  try{
+   const r=await fetch("/api/chat?op=tts",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:text.slice(0,700)})});
+   if(!r.ok||!/audio/.test(r.headers.get("content-type")||"")) return;
+   const u=URL.createObjectURL(await r.blob()); curAudio=new Audio(u); curAudio.onended=()=>URL.revokeObjectURL(u); await curAudio.play();
+  }catch(e){}
+ }
+ async function ask(q,news){
+  if(busy) return; busy=true;
+  if(q){ add("user",q); H.push({role:"user",content:q}); }
+  else add("user","📰 Жаңа алаяқтық схемалары қандай?");
+  const t=add("assistant",""); t.innerHTML='<span class="aic-typing"><i></i><i></i><i></i></span>';
+  if(news) st.textContent="🔎 Интернеттен жаңа схемалар ізделуде…";
+  try{
+   const r=await fetch("/api/chat?op=chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({messages:H.slice(-10),mode:news?"news":"chat",lang:famLang})});
+   const j=await r.json().catch(()=>({}));
+   if(!j.ok) throw new Error(j.error||"x");
+   t.textContent=j.text; H.push({role:"assistant",content:j.text});
+   if(j.sources&&j.sources.length){ const sr=el("div","src"); j.sources.forEach(s=>{ if(!/^https:\/\//.test(s.url)) return; const a=el("a",null,"🔗 "+(s.url.split("/")[2]||"").replace(/^www\./,"")); a.href=s.url; a.target="_blank"; a.rel="noopener noreferrer"; sr.append(a); }); t.append(sr); }
+   const sb=el("button","say","🔊 Тыңдау"); sb.type="button"; sb.addEventListener("click",()=>speak(j.text)); t.append(sb);
+   if(autoSpeak) speak(j.text);
+  }catch(e){ t.classList.add("err"); t.textContent="⚠️ "+(ERR[e.message]||"Байланыс жоқ.")+"\n\n"+FALLBACK; if(q) H.pop(); }
+  st.textContent="Алаяқтық туралы кез келген сұрақ — жазып не айтып сұраңыз";
+  busy=false; log.scrollTop=log.scrollHeight;
+ }
+ form.addEventListener("submit",e=>{ e.preventDefault(); const q=txt.value.trim(); if(!q) return; txt.value=""; ask(q.slice(0,600),false); });
+ $("aicChips").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; if(b.dataset.news) ask("",true); else ask(b.textContent.replace(/^\S+\s/,""),false); });
+ // ---- Дауыспен сұрау ----
+ let rec=null, chunks=[], stopT=null;
+ async function startRec(){
+  if(!navigator.mediaDevices||!window.MediaRecorder){ toast("Бұл браузер дауыс жазуды қолдамайды"); return; }
+  let stream; try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }catch(e){ toast("🎤 Микрофонға рұқсат беріңіз"); return; }
+  const mt=["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||"";
+  rec=new MediaRecorder(stream,mt?{mimeType:mt,audioBitsPerSecond:32000}:undefined); chunks=[];
+  rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+  rec.onstop=async()=>{
+   stream.getTracks().forEach(t=>t.stop()); mic.classList.remove("rec"); mic.textContent="🎤"; clearTimeout(stopT);
+   const blob=new Blob(chunks,{type:(rec.mimeType||"audio/webm")}); rec=null;
+   if(blob.size<1500){ toast("Тым қысқа — батырманы басып, сөйлеп, қайта басыңыз"); return; }
+   st.textContent="🎧 Дауысыңыз мәтінге айналуда…";
+   try{
+    const b64=await new Promise((ok,no)=>{ const fr=new FileReader(); fr.onload=()=>ok(String(fr.result).split(",")[1]||""); fr.onerror=no; fr.readAsDataURL(blob); });
+    const r=await fetch("/api/chat?op=stt",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({audio:b64,mime:blob.type})});
+    const j=await r.json().catch(()=>({}));
+    if(!j.ok||!j.text) throw new Error(j.error||"x");
+    autoSpeak=true; setSpk(); ask(j.text.slice(0,600),false);
+   }catch(e){ st.textContent="Алаяқтық туралы кез келген сұрақ — жазып не айтып сұраңыз"; toast("⚠️ "+(ERR[e.message]||"Дауысты тану мүмкін болмады")); }
+  };
+  rec.start(); mic.classList.add("rec"); mic.textContent="⏹"; st.textContent="🔴 Тыңдап тұрмын… сөйлеп болған соң ⏹ басыңыз";
+  if(curAudio) curAudio.pause();
+  stopT=setTimeout(()=>{ if(rec&&rec.state==="recording") rec.stop(); },30000);
+ }
+ mic.addEventListener("click",()=>{ if(rec&&rec.state==="recording") rec.stop(); else startRec(); });
+})();
 })();
 </script>
 </body>

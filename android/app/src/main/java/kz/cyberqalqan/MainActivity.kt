@@ -364,6 +364,8 @@ class MainActivity : Activity() {
         })
         list.addView(gap(6))
         list.addView(text("Бір басу: сілтеме, қосымшалар, рұқсаттар және қорғаныс күйі — бәрі тексеріледі", 12.5f, MUT).apply { gravity = Gravity.CENTER })
+        list.addView(gap(14))
+        list.addView(button("🤖  ИИ-кеңесші — жазып не дауыспен сұраңыз", false) { startActivity(Intent(this, AiActivity::class.java)) })
         list.addView(gap(20))
 
         // ---- Қорғаныс күйі ----

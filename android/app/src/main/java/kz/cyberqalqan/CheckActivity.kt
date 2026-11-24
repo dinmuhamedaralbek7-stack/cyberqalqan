@@ -133,6 +133,11 @@ class CheckActivity : Activity() {
         try { startActivity(chooser) } catch (_: Exception) {}
     }
 
+    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, grants: IntArray) {
+        super.onRequestPermissionsResult(code, perms, grants)
+        Dialer.onResult(this, code, grants)
+    }
+
     inner class Bridge {
         @JavascriptInterface fun isApp(): Boolean = true
         @JavascriptInterface fun clip(): String = readClipboard()
@@ -164,6 +169,7 @@ class CheckActivity : Activity() {
         @JavascriptInterface fun famSave(json: String): Boolean = Family.save(this@CheckActivity, json)
         @JavascriptInterface fun siteBase(): String = Family.siteBase(this@CheckActivity)
         /** SMS/WhatsApp қолданбасын дайын мәтінмен ашу (жіберуді пайдаланушы өзі басады) */
+        @JavascriptInterface fun call(phone: String) { runOnUiThread { Dialer.call(this@CheckActivity, phone.take(20)) } }
         @JavascriptInterface fun compose(method: String, phone: String, body: String): Boolean =
             Family.compose(this@CheckActivity, if (method == "whatsapp") "whatsapp" else "sms", phone.take(20), body.take(1500))
         @JavascriptInterface fun aiEnabled(): Boolean = Prefs.aiActive(this@CheckActivity)
