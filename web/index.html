@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="format-detection" content="telephone=no">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-fPlL/fZZKLne9WhhJtKkyFQ5S+D7jCnrjRGKD1zPyXg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-OQ5AxGDh3bIxl1cFrKgid7AZ3HxQy5KpbQMSCDLXUzA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="theme-color" content="#05070d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -379,6 +379,7 @@ body.app .bg-anim{display:none}
 .aic-m.a.err{border-color:var(--warn)}
 .aic-m .src{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .aic-m .src a{font-size:11.5px;color:var(--acc);border:1px solid var(--line);border-radius:8px;padding:2px 7px;text-decoration:none}
+.aic-m .say.on{color:var(--acc);font-weight:700}
 .aic-m .say{margin-top:6px;background:none;border:0;color:var(--mut);font-size:12.5px;cursor:pointer;padding:0;font-family:inherit}
 .aic-typing{display:inline-flex;gap:4px}.aic-typing i{width:7px;height:7px;border-radius:50%;background:var(--mut);animation:pulse 1s infinite}.aic-typing i:nth-child(2){animation-delay:.2s}.aic-typing i:nth-child(3){animation-delay:.4s}
 @keyframes aicIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -1661,21 +1662,40 @@ function quickContact(ph,method){
  const H=[]; let busy=false, autoSpeak=true, curAudio=null, enabled=null;
  try{ autoSpeak=localStorage.getItem("cq_ai_voice")!=="0"; }catch(e){}
  const setSpk=()=>spk.setAttribute("aria-pressed",String(autoSpeak)); setSpk();
- spk.addEventListener("click",()=>{ autoSpeak=!autoSpeak; setSpk(); try{localStorage.setItem("cq_ai_voice",autoSpeak?"1":"0");}catch(e){} if(!autoSpeak&&curAudio){curAudio.pause();} toast(autoSpeak?"🔊 Жауаптар дауыстап оқылады":"🔇 Дауыс өшірілді"); });
+ spk.addEventListener("click",()=>{ autoSpeak=!autoSpeak; setSpk(); try{localStorage.setItem("cq_ai_voice",autoSpeak?"1":"0");}catch(e){} if(!autoSpeak) stopSpeak(); toast(autoSpeak?"🔊 Жауаптар дауыстап оқылады":"🔇 Дауыс өшірілді"); });
  fetch("/api/chat").then(r=>r.json()).then(j=>{ enabled=!!j.enabled; if(!enabled) st.textContent="⚠️ ИИ әлі қосылмаған — әкімші OPENAI_API_KEY енгізуі керек"; }).catch(()=>{});
  const add=(role,text,extra)=>{ const m=el("div","aic-m "+(role==="user"?"u":"a")); m.textContent=text; if(extra) extra(m); log.append(m); log.scrollTop=log.scrollHeight; return m; };
  const ERR={rate_limited:"Тым жиі сұрадыңыз — бір минуттан кейін қайталаңыз.",openai_quota:"ИИ лимиті таусылды. Әкімші OpenAI балансын тексеруі керек.",disabled:"ИИ әлі қосылмаған.",timeout:"Жауап кешікті — қайталап көріңіз."};
  const FALLBACK="Негізгі ереже: SMS-кодты, карта деректерін ешкімге айтпаңыз; бейтаныс APK орнатпаңыз; «банк қызметкері» қоңырау шалса — тұтқаны қойып, картаның артындағы нөмірге өзіңіз қоңырау шалыңыз. Ақша аударып қойсаңыз — дереу банкке және 102-ге хабарласыңыз.";
- async function speak(text){
-  if(curAudio){ curAudio.pause(); curAudio=null; }
+ /* Дауыстап оқу: бір уақытта тек бір дауыс; бір басу — қосу, қайта басу — тоқтату */
+ let curBtn=null, speakSeq=0; const ttsCache=new Map();
+ const SAY="🔊 Тыңдау", LOAD="⏳ Жүктелуде…", STOP="⏹ Тоқтату";
+ function stopSpeak(){
+  speakSeq++;
+  if(curAudio){ try{ curAudio.pause(); curAudio.currentTime=0; }catch(e){} curAudio=null; }
+  if(curBtn){ curBtn.textContent=SAY; curBtn.classList.remove("on"); curBtn=null; }
+ }
+ async function speak(text,btn){
+  if(btn && curBtn===btn){ stopSpeak(); return; }   // сол батырма қайта басылды → тоқтату
+  stopSpeak();
+  const seq=speakSeq; curBtn=btn||null;
+  if(btn){ btn.textContent=LOAD; btn.classList.add("on"); }
   try{
-   const r=await fetch("/api/chat?op=tts",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:text.slice(0,700)})});
-   if(!r.ok||!/audio/.test(r.headers.get("content-type")||"")) return;
-   const u=URL.createObjectURL(await r.blob()); curAudio=new Audio(u); curAudio.onended=()=>URL.revokeObjectURL(u); await curAudio.play();
-  }catch(e){}
+   const key=text.slice(0,700); let u=ttsCache.get(key);
+   if(!u){
+    const r=await fetch("/api/chat?op=tts",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:key})});
+    if(!r.ok||!/audio/.test(r.headers.get("content-type")||"")) throw new Error("tts");
+    u=URL.createObjectURL(await r.blob()); ttsCache.set(key,u);
+   }
+   if(seq!==speakSeq) return;                         // осы уақытта басқасы басылды/тоқтатылды
+   const a=new Audio(u); curAudio=a;
+   a.onended=()=>{ if(curAudio===a) stopSpeak(); };
+   if(btn) btn.textContent=STOP;
+   await a.play();
+  }catch(e){ if(seq===speakSeq){ stopSpeak(); if(btn) toast("Дауысты қосу мүмкін болмады"); } }
  }
  async function ask(q,news){
-  if(busy) return; busy=true;
+  if(busy) return; busy=true; stopSpeak();
   if(q){ add("user",q); H.push({role:"user",content:q}); }
   else add("user","📰 Жаңа алаяқтық схемалары қандай?");
   const t=add("assistant",""); t.innerHTML='<span class="aic-typing"><i></i><i></i><i></i></span>';
@@ -1686,8 +1706,8 @@ function quickContact(ph,method){
    if(!j.ok) throw new Error(j.error||"x");
    t.textContent=j.text; H.push({role:"assistant",content:j.text});
    if(j.sources&&j.sources.length){ const sr=el("div","src"); j.sources.forEach(s=>{ if(!/^https:\/\//.test(s.url)) return; const a=el("a",null,"🔗 "+(s.url.split("/")[2]||"").replace(/^www\./,"")); a.href=s.url; a.target="_blank"; a.rel="noopener noreferrer"; sr.append(a); }); t.append(sr); }
-   const sb=el("button","say","🔊 Тыңдау"); sb.type="button"; sb.addEventListener("click",()=>speak(j.text)); t.append(sb);
-   if(autoSpeak) speak(j.text);
+   const sb=el("button","say",SAY); sb.type="button"; sb.addEventListener("click",()=>speak(j.text,sb)); t.append(sb);
+   if(autoSpeak) speak(j.text,sb);
   }catch(e){ t.classList.add("err"); t.textContent="⚠️ "+(ERR[e.message]||"Байланыс жоқ.")+"\n\n"+FALLBACK; if(q) H.pop(); }
   st.textContent="Алаяқтық туралы кез келген сұрақ — жазып не айтып сұраңыз";
   busy=false; log.scrollTop=log.scrollHeight;
@@ -1716,7 +1736,7 @@ function quickContact(ph,method){
    }catch(e){ st.textContent="Алаяқтық туралы кез келген сұрақ — жазып не айтып сұраңыз"; toast("⚠️ "+(ERR[e.message]||"Дауысты тану мүмкін болмады")); }
   };
   rec.start(); mic.classList.add("rec"); mic.textContent="⏹"; st.textContent="🔴 Тыңдап тұрмын… сөйлеп болған соң ⏹ басыңыз";
-  if(curAudio) curAudio.pause();
+  stopSpeak();
   stopT=setTimeout(()=>{ if(rec&&rec.state==="recording") rec.stop(); },30000);
  }
  mic.addEventListener("click",()=>{ if(rec&&rec.state==="recording") rec.stop(); else startRec(); });
