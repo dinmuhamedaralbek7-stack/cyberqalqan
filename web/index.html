@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="format-detection" content="telephone=no">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-OQ5AxGDh3bIxl1cFrKgid7AZ3HxQy5KpbQMSCDLXUzA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-s9EhXX/qZY5mKzbIrmpqOEHYyR2aeKZsQ3W0AB2Rqwg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="theme-color" content="#05070d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -397,6 +397,20 @@ body.ai-only .aic-log{max-height:calc(100vh - 290px)}
 /* ---- Жақын адамға: жазу / қоңырау ---- */
 .fam-quick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 4px}
 .fam-quick a,.fam-quick button{text-align:center;text-decoration:none}
+
+/* ---- Орнату видео-нұсқаулығы ---- */
+.howto{max-width:720px;margin:0 auto 18px;padding:14px;border:1px solid var(--line);border-radius:20px;background:var(--card);display:flex;gap:16px;align-items:center;text-align:left;cursor:pointer;transition:border-color .2s}
+.howto:hover{border-color:var(--acc)}
+.howto .ht-th{position:relative;flex:none;width:96px;height:170px;border-radius:14px;overflow:hidden;background:#05070d center/cover no-repeat}
+.howto .ht-th::after{content:"▶";position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px;border-radius:50%;background:rgba(60,242,195,.92);color:#03140f;display:grid;place-items:center;font-size:18px;padding-left:3px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.howto b{display:block;font-size:17px;margin-bottom:4px}
+.howto p{color:var(--mut);font-size:13.5px;margin:0 0 10px;line-height:1.45}
+.howto .ht-btn{display:inline-block;padding:9px 16px;border-radius:12px;background:var(--acc);color:#03140f;font-weight:800;font-size:14px}
+.vmodal{position:fixed;inset:0;z-index:2147483000;background:rgba(2,4,10,.88);display:none;align-items:center;justify-content:center;padding:16px}
+.vmodal.on{display:flex}
+.vmodal .vbox{position:relative;height:min(86vh,calc((100vw - 32px)*16/9));aspect-ratio:9/16;max-width:100%}
+.vmodal video{width:100%;height:100%;border-radius:18px;background:#000;object-fit:contain}
+.vmodal .vx{position:absolute;top:-6px;right:-6px;width:40px;height:40px;border-radius:50%;border:0;background:#fff;color:#000;font-size:20px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4)}
 </style>
 </head>
 <body>
@@ -459,6 +473,11 @@ Cyber<b>Qalqan</b>
 <h2 style="justify-content:center;font-size:24px;margin-bottom:6px">📲 CyberQalqan-ды телефонға орнату</h2>
 <p class="dl-sub">Тегін · Жарнамасыз · Сілтемелер телефонның ішінде тексеріледі</p>
 <div class="warnbox hidden" id="inAppWarn" style="margin:0 auto 14px;max-width:720px"></div>
+<div class="howto" id="howtoCard" role="button" tabindex="0" aria-label="Орнату видео-нұсқаулығын ашу">
+<div class="ht-th" style="background-image:url(/media/howto-poster.jpg)"></div>
+<div><b>▶️ Қалай орнатамыз? — 1 минуттық видео</b><p>Android (APK) мен iPhone-ға орнатуды қадам-қадаммен көрсетеді: «Бәрібір жүктеу», «Белгісіз көздерге рұқсат», Play Protect, «Басты экранға қосу».</p><span class="ht-btn">Видеоны көру</span></div>
+</div>
+<div class="vmodal" id="vModal" aria-hidden="true"><div class="vbox"><video id="howtoVid" controls playsinline preload="none" poster="/media/howto-poster.jpg"><source src="/media/howto.mp4" type="video/mp4"></video><button class="vx" id="vClose" type="button" aria-label="Жабу">✕</button></div></div>
 <div class="dl-grid">
 <div class="dl-card" id="dlAndroid">
 <div class="dl-os">🤖 Android</div>
@@ -1740,6 +1759,17 @@ function quickContact(ph,method){
   stopT=setTimeout(()=>{ if(rec&&rec.state==="recording") rec.stop(); },30000);
  }
  mic.addEventListener("click",()=>{ if(rec&&rec.state==="recording") rec.stop(); else startRec(); });
+})();
+
+/* ---------- Орнату видео-нұсқаулығы ---------- */
+(function(){
+ const card=$("howtoCard"), m=$("vModal"), v=$("howtoVid"), x=$("vClose"); if(!card||!m||!v) return;
+ const open=()=>{ m.classList.add("on"); m.setAttribute("aria-hidden","false"); try{ v.currentTime=0; const p=v.play(); if(p&&p.catch) p.catch(()=>{}); }catch(e){} };
+ const close=()=>{ try{ v.pause(); }catch(e){} m.classList.remove("on"); m.setAttribute("aria-hidden","true"); };
+ card.addEventListener("click",open); card.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
+ x.addEventListener("click",close); m.addEventListener("click",e=>{ if(e.target===m) close(); });
+ document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&m.classList.contains("on")) close(); });
+ if(location.hash==="#howto") setTimeout(open,400);
 })();
 })();
 </script>
